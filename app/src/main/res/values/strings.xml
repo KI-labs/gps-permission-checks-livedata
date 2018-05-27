@@ -1,3 +1,5 @@
 <resources>
-    <string name="app_name">LocationServiceLiveData</string>
+    <string name="app_name">Location Service with LiveData</string>
+    <string name="toggle_button_text_start">Start Tracking</string>
+    <string name="toggle_button_text_end">End Tracking</string>
 </resources>
