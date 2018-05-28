@@ -81,6 +81,4 @@ sealed class CustomLocationResult {
     data class GpsIsEnabled(val message: String) : CustomLocationResult()
 
     data class PermissionMissing(val message: String) : CustomLocationResult()
-
-    data class PermissionLost(val message: String) : CustomLocationResult()
 }

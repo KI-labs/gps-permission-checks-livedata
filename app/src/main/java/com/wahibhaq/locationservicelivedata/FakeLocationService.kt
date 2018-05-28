@@ -73,7 +73,7 @@ class FakeLocationService : LifecycleService() {
     }
 
     private fun showGpsIsDisabledNotification() {
-        // Show the notification with an intent to take to enable location
+        // Clicking notification will taker user to enable location setting screen
         val resultIntent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
         val pendingIntent = PendingIntent.getActivity(
             context, 0, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT
