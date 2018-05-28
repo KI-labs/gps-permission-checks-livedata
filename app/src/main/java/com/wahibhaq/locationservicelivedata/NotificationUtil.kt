@@ -16,7 +16,7 @@ const val NOTIFICATION_CHANNEL_NAME = "All"
 const val NOTIFICATION_CHANNEL_ONGOING_ID = "com.wahibhaq.locationservicelivedata.ongoing"
 const val NOTIFICATION_CHANNEL_ALERTS_ID = "com.wahibhaq.locationservicelivedata.alerts"
 
-
+//TODO Hide notifications
 class NotificationsUtil(
     private val context: Context,
     private val notificationManager: NotificationManager
@@ -54,7 +54,7 @@ class NotificationsUtil(
             .setContentText(text)
             .setSmallIcon(R.mipmap.ic_launcher_round)
             .setContentIntent(pendingIntent)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
             .setOnlyAlertOnce(true)
             .build()
 
