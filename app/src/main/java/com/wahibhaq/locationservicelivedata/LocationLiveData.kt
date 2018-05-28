@@ -1,133 +1,82 @@
 package com.wahibhaq.locationservicelivedata
 
 import android.arch.lifecycle.LiveData
-import android.content.Context
-import android.content.IntentSender
+import android.content.*
 import android.location.LocationManager
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
 import com.google.android.gms.tasks.Task
 
+
 class LocationLiveData(
-    context: Context, private val fusedLocationClient:
-    FusedLocationProviderClient, locationRequest: LocationRequest
+    private val context: Context, locationRequest: LocationRequest
 ) : LiveData<CustomLocationResult>() {
-
-
 
     private val locationSetting =
         LocationSettingsRequest.Builder().addLocationRequest(locationRequest)
     private val client: SettingsClient = LocationServices.getSettingsClient(context)
 
 
-//    private val gnssCallback = @RequiresApi(Build.VERSION_CODES.N)
-//object : GnssStatus.Callback() {
-//        override fun onSatelliteStatusChanged(status: GnssStatus?) {
-//            super.onSatelliteStatusChanged(status)
-//            Timber.i("GPS Status Changed")
-//        }
-//
-//        override fun onStarted() {
-//            super.onStarted()
-//            Timber.i("GPS Status Started")
-//            registerForLocationUpdates()
-//        }
-//
-//        override fun onStopped() {
-//            super.onStopped()
-//            Timber.i("GPS Status Stopped")
-//        }
-//    }
-
-//    private val gpsListener = GpsStatus.Listener { event ->
-//        if (event == GpsStatus.GPS_EVENT_FIRST_FIX) {
-////            showMessageDialog("GPS fixed")
-//        }
-//    }
-
-
-
     override fun onInactive() {
         super.onInactive()
-
+        context.unregisterReceiver(GpsSwitchStateReceiver)
     }
 
 
     override fun onActive() {
         super.onActive()
+        context.registerReceiver(
+            GpsSwitchStateReceiver, IntentFilter(
+                LocationManager
+                    .PROVIDERS_CHANGED_ACTION
+            )
+        )
+        checkGpsForFirstFlow()
+    }
 
-//        registerGnss()
-
-        //TODO still not sure if it will keep listening or not
-        val task: Task<LocationSettingsResponse> = client.checkLocationSettings(locationSetting
-            .build())
+    private fun checkGpsForFirstFlow() {
+        val task: Task<LocationSettingsResponse> = client.checkLocationSettings(
+            locationSetting.build()
+        )
 
         task.addOnSuccessListener {
-            postValue(CustomLocationResult.GpsIsEnabled("Gps is Enabled"))
+            postValue(CustomLocationResult.GpsIsEnabled("Gps Ss Enabled"))
         }
 
-        task.addOnFailureListener {exception ->
-            if (exception is ResolvableApiException){
-                // Location settings are not satisfied, but this can be fixed
-                // by showing the user a dialog.
+        task.addOnFailureListener { exception ->
+            if (exception is ResolvableApiException) {
                 try {
-                    // Show the dialog by calling startResolutionForResult(),
-                    // and check the result in onActivityResult().
-//                    exception.startResolutionForResult(this@MainActivity,
-//                        REQUEST_CHECK_SETTINGS)
-
-
-//                    context.sendBroadcast(Intent(CUSTOM_INTENT))
-                    postValue(CustomLocationResult.GpsNotEnabled( "GPS Not Enabled"))
+                    postValue(CustomLocationResult.GpsIsDisabled("GPS Is Disabled"))
 
                 } catch (sendEx: IntentSender.SendIntentException) {
                     // Ignore the error.
                 }
             }
         }
-
-//        if (!AppUtil.isLocationEnabled(context)) {
-//            postValue(CustomLocationResult.GpsNotEnabled(error = "GPS Not Enabled"))
-//        } else {
-//            try {
-//                fusedLocationClient.requestLocationUpdates(
-//                    locationRequest, locationCallback,
-//                    Looper.myLooper()
-//                )
-//            } catch (unlikely: SecurityException) {
-//                postValue(
-//                    CustomLocationResult.PermissionLost(
-//                        error = "Lost location permission. " +
-//                                "Could not request updates. $unlikely"
-//                    )
-//                )
-//            }
-//        }
     }
 
+    /**
+     * Following broadcast receiver is to listen the Location button toggle state in Android.
+     */
+    private val GpsSwitchStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
 
-
-//    private fun registerGnss() {
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-//
-//            if (ContextCompat.checkSelfPermission(
-//                    context,
-//                    android.Manifest.permission.ACCESS_FINE_LOCATION
-//                )
-//                == PackageManager.PERMISSION_GRANTED) {
-//
-//                locationManager.registerGnssStatusCallback(gnssCallback)
-//            } else {
-//
-//            }
-//        }
-//    }
+            if (intent.action.matches("android.location.PROVIDERS_CHANGED".toRegex())) {
+                // Make an action or refresh an already managed state.
+                if (AppUtil.isLocationEnabled(context)) {
+                    postValue(CustomLocationResult.GpsIsEnabled("Gps Is Enabled"))
+                } else {
+                    postValue(CustomLocationResult.GpsIsDisabled("GPS Is Disabled"))
+                }
+            }
+        }
+    }
 
 }
 
 sealed class CustomLocationResult {
 
-    data class GpsNotEnabled(val message: String) : CustomLocationResult()
+    data class GpsIsDisabled(val message: String) : CustomLocationResult()
 
     data class GpsIsEnabled(val message: String) : CustomLocationResult()
 

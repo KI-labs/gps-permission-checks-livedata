@@ -5,9 +5,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
-import android.content.Intent
 import android.os.Build
-import android.provider.Settings
 import android.support.v4.app.NotificationCompat
 
 const val ONGOING_NOTIFICATION_ID = 100
@@ -26,7 +24,7 @@ class NotificationsUtil(
         service: Service,
         title: String,
         text: String,
-        pendingIntent: PendingIntent
+        pendingIntent: PendingIntent?
     ) {
         createOngoingNotificationChannel()
         service.startForeground(
@@ -51,10 +49,11 @@ class NotificationsUtil(
         val notification = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ALERTS_ID)
             .setContentTitle(title)
             .setOngoing(false)
+            .setAutoCancel(true)
             .setContentText(text)
             .setSmallIcon(R.mipmap.ic_launcher_round)
             .setContentIntent(pendingIntent)
-            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setOnlyAlertOnce(true)
             .build()
 
@@ -83,5 +82,9 @@ class NotificationsUtil(
                     notificationManager.createNotificationChannel(channel)
                 }
         }
+    }
+
+    fun cancelAlertNotification() {
+        notificationManager.cancel(ALERT_NOTIFICATION_ID)
     }
 }

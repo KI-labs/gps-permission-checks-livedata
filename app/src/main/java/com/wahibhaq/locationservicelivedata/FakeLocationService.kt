@@ -7,7 +7,6 @@ import android.arch.lifecycle.LifecycleService
 import android.arch.lifecycle.Observer
 import android.content.Context
 import android.content.Intent
-import android.location.LocationManager
 import android.os.IBinder
 import android.os.Looper
 import android.provider.Settings
@@ -38,24 +37,32 @@ class FakeLocationService : LifecycleService() {
     //TODO Implement App Permission check
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
-        val locationLiveData = LocationLiveData(context, fusedLocationClient, locationRequest)
+        val locationLiveData = LocationLiveData(context, locationRequest)
         locationLiveData.observe(
             this, Observer { locationResult ->
                 when (locationResult) {
-                    is CustomLocationResult.GpsNotEnabled -> {
+                    is CustomLocationResult.GpsIsDisabled -> {
                         isServiceRunning = false
                         Timber.e(locationResult.message)
-                        showGpsNotEnabledNotification()
                         unregisterLocationUpdates()
+                        showOnGoingNotification("Listening to Location...")
+                        showGpsIsDisabledNotification()
                     }
+
                     is CustomLocationResult.PermissionMissing -> {
                         Timber.e(locationResult.message)
+                        showOnGoingNotification("Necessary Permissions are Missing...")
                         //TODO request for permission here
+                        //TODO need to combine it with GpsIsEnabled
                     }
+
                     is CustomLocationResult.GpsIsEnabled -> {
                         isServiceRunning = true
-                        Timber.i("Tracking service started successfully")
-                        registerLocationUpdates()
+                        Timber.i(locationResult.message)
+                        showOnGoingNotification("In Progress")
+                        registerLocationUpdates() //We only start listening when Gps and
+                        // Permissions are there
+                        notificationsUtil.cancelAlertNotification()
                     }
                 }
 
@@ -65,7 +72,7 @@ class FakeLocationService : LifecycleService() {
         return Service.START_STICKY
     }
 
-    private fun showGpsNotEnabledNotification() {
+    private fun showGpsIsDisabledNotification() {
         // Show the notification with an intent to take to enable location
         val resultIntent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
         val pendingIntent = PendingIntent.getActivity(
@@ -77,13 +84,13 @@ class FakeLocationService : LifecycleService() {
         )
     }
 
-    private fun showInProgressNotification() {
+    private fun showOnGoingNotification(message: String) {
         Intent(this, MainActivity::class.java)
             .let { PendingIntent.getActivity(this, 0, it, 0) }
             .let { pendingIntent ->
                 notificationsUtil.createOngoingNotification(
                     this,
-                    "Location Tracking", "Status: In Progress", pendingIntent
+                    "Location Tracking", message, pendingIntent
                 )
             }
     }
@@ -109,6 +116,11 @@ class FakeLocationService : LifecycleService() {
         throw UnsupportedOperationException("Not yet implemented")
     }
 
+    override fun onDestroy() {
+        unregisterLocationUpdates()
+        super.onDestroy()
+    }
+
     private fun unregisterLocationUpdates() {
         try {
             fusedLocationClient.removeLocationUpdates(locationCallback)
@@ -121,9 +133,8 @@ class FakeLocationService : LifecycleService() {
         try {
             fusedLocationClient.requestLocationUpdates(
                 locationRequest, locationCallback,
-                Looper.myLooper())
-
-            showInProgressNotification()
+                Looper.myLooper()
+            )
         } catch (unlikely: SecurityException) {
             Timber.e("Error when registerLocationUpdates()")
 
