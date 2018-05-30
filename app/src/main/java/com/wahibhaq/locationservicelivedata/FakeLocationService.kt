@@ -1,5 +1,6 @@
 package com.wahibhaq.locationservicelivedata
 
+import android.Manifest
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
@@ -15,7 +16,10 @@ import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
+import com.nabinbhandari.android.permissions.PermissionHandler
+import com.nabinbhandari.android.permissions.Permissions
 import timber.log.Timber
+import java.util.*
 
 
 class FakeLocationService : LifecycleService() {
@@ -28,6 +32,8 @@ class FakeLocationService : LifecycleService() {
 
     private lateinit var locationRequest: LocationRequest
 
+    private lateinit var notificationState: NotificationState
+
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(locationResult: com.google.android.gms.location.LocationResult) {
             //Decide how to use location coordinates
@@ -37,32 +43,30 @@ class FakeLocationService : LifecycleService() {
     //TODO Implement App Permission check
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
-        val locationLiveData = LocationLiveData(context, locationRequest)
+        val locationLiveData = GpsStatusListener(context)
         locationLiveData.observe(
             this, Observer { locationResult ->
                 when (locationResult) {
                     is CustomLocationResult.GpsIsDisabled -> {
-                        isServiceRunning = false
                         Timber.e(locationResult.message)
                         unregisterLocationUpdates()
-                        showOnGoingNotification("Listening to Location...")
-                        showGpsIsDisabledNotification()
-                    }
 
-                    is CustomLocationResult.PermissionMissing -> {
-                        Timber.e(locationResult.message)
-                        showOnGoingNotification("Necessary Permissions are Missing...")
-                        //TODO request for permission here
-                        //TODO need to combine it with GpsIsEnabled
+                        //Only override the message if it was not displaying any permission warnings
+                        if (notificationState == NotificationState.InProgress()) {
+                            showOnGoingNotification("Listening to Location...")
+                        }
+
+                        showGpsIsDisabledNotification()
+                        notificationState = NotificationState.WaitingForGps()
                     }
 
                     is CustomLocationResult.GpsIsEnabled -> {
-                        isServiceRunning = true
                         Timber.i(locationResult.message)
                         showOnGoingNotification("In Progress")
                         registerLocationUpdates() //We only start listening when Gps and
                         // Permissions are there
                         notificationsUtil.cancelAlertNotification()
+                        notificationState = NotificationState.InProgress()
                     }
                 }
 
@@ -109,6 +113,42 @@ class FakeLocationService : LifecycleService() {
             interval = 5 * DateUtils.SECOND_IN_MILLIS
             priority = LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY
         }
+
+        handleRuntimePermission()
+    }
+    
+    private fun handleRuntimePermission() {
+        Permissions.check(this,
+            arrayOf(
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ),
+            R.string.dialog_message_permanently_denied_permissions,
+            Permissions.Options().setSettingsDialogTitle("Warning!").setRationaleDialogTitle("Info")
+                .sendDontAskAgainToSettings(true),
+            object : PermissionHandler() {
+                override fun onGranted() {
+                    showOnGoingNotification("In Progress")
+                    registerLocationUpdates()
+                    notificationState = NotificationState.InProgress()
+                }
+
+                override fun onDenied(context: Context?, deniedPermissions: ArrayList<String>?) {
+                    unregisterLocationUpdates()
+                    showOnGoingNotification("Waiting for permissions to be granted")
+                    notificationState = NotificationState.WaitingForEnablingPermission()
+                }
+
+                override fun onJustBlocked(
+                    context: Context?,
+                    justBlockedList: ArrayList<String>?,
+                    deniedPermissions: ArrayList<String>?
+                ) {
+                    unregisterLocationUpdates()
+                    showOnGoingNotification("Waiting for permissions to be unblocked")
+                    notificationState = NotificationState.WaitingForUnblockingPermission()
+                }
+            })
     }
 
     override fun onBind(intent: Intent): IBinder {
@@ -122,6 +162,7 @@ class FakeLocationService : LifecycleService() {
     }
 
     private fun unregisterLocationUpdates() {
+        isTrackingRunning = false
         try {
             fusedLocationClient.removeLocationUpdates(locationCallback)
         } catch (unlikely: SecurityException) {
@@ -130,6 +171,7 @@ class FakeLocationService : LifecycleService() {
     }
 
     private fun registerLocationUpdates() {
+        isTrackingRunning = true
         try {
             fusedLocationClient.requestLocationUpdates(
                 locationRequest, locationCallback,
@@ -142,6 +184,13 @@ class FakeLocationService : LifecycleService() {
     }
 
     companion object {
-        var isServiceRunning: Boolean = false
+        var isTrackingRunning: Boolean = false
     }
+}
+
+sealed class NotificationState {
+    class InProgress : NotificationState()
+    class WaitingForGps : NotificationState()
+    class WaitingForEnablingPermission : NotificationState()
+    class WaitingForUnblockingPermission : NotificationState()
 }

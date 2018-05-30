@@ -6,12 +6,11 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <ToggleButton
+    <Button
         android:id="@+id/btnInitTracking"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textOff="@string/toggle_button_text_start"
-        android:textOn="@string/toggle_button_text_end"
+        android:text="@string/button_text_start"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"

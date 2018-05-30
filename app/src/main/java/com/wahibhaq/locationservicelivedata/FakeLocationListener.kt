@@ -17,8 +17,7 @@ class FakeLocationListener(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Timber.d("Running on Android O")
             context.startForegroundService(serviceIntent)
-        }
-        else {
+        } else {
             Timber.d("Running on Android N or lower")
             context.startService(serviceIntent)
         }

@@ -35,6 +35,7 @@ dependencies {
     kapt "android.arch.lifecycle:compiler:$aac_lifecycle"
     debugImplementation "com.jakewharton.timber:timber:$timber"
     implementation "com.google.android.gms:play-services-location:$play_services"
+    implementation 'com.nabinbhandari.android:permissions:3.5'
 
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
