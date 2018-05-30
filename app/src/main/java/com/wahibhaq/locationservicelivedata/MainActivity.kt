@@ -14,23 +14,23 @@ import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var fakeLocationListener: FakeLocationListener
+    private lateinit var locationServiceListener: LocationServiceListener
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        fakeLocationListener = FakeLocationListener(
+        locationServiceListener = LocationServiceListener(
             applicationContext,
-            Intent(applicationContext, FakeLocationService::class.java)
+            Intent(applicationContext, LocationService::class.java)
         )
 
         btnInitTracking.setOnClickListener {
             if (AppUtil.isLocationEnabled(this)) {
-                if (!FakeLocationService.isTrackingRunning) {
+                if (!LocationService.isTrackingRunning) {
                     handleRuntimePermission()
-                } else if (FakeLocationService.isTrackingRunning) {
-                    fakeLocationListener.unsubscribeFromLocationUpdates()
+                } else if (LocationService.isTrackingRunning) {
+                    locationServiceListener.unsubscribeFromLocationUpdates()
                     btnInitTracking.text = getString(R.string.button_text_start)
                 }
             } else {
@@ -51,7 +51,7 @@ class MainActivity : AppCompatActivity() {
             object : PermissionHandler() {
                 override fun onGranted() {
                     Toast.makeText(this@MainActivity, "Permission Accepted", Toast.LENGTH_SHORT).show()
-                    fakeLocationListener.subscribeToLocationUpdates()
+                    locationServiceListener.subscribeToLocationUpdates()
                     btnInitTracking.text = getString(R.string.button_text_end)
                 }
 
@@ -68,7 +68,7 @@ class MainActivity : AppCompatActivity() {
                         .show()
                     AppUtil.showPermissionsPermanentlyDeniedDialog(this@MainActivity,
                         DialogInterface.OnClickListener { _, _ ->
-                            fakeLocationListener.unsubscribeFromLocationUpdates()
+                            locationServiceListener.unsubscribeFromLocationUpdates()
                         })
                 }
             })
@@ -76,7 +76,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        when (FakeLocationService.isTrackingRunning) {
+        when (LocationService.isTrackingRunning) {
             true -> btnInitTracking.text = getString(R.string.button_text_end)
             false -> btnInitTracking.text = getString(R.string.button_text_start)
         }

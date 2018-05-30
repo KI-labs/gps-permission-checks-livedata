@@ -7,7 +7,7 @@ import android.os.Build
 import timber.log.Timber
 
 
-class FakeLocationListener(
+class LocationServiceListener(
     private val context: Context,
     private val serviceIntent: Intent
 ) : LocationListener {

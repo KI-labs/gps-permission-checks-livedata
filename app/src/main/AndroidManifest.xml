@@ -20,7 +20,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <service android:name=".FakeLocationService" />
+        <service android:name=".LocationService" />
     </application>
 
 </manifest>

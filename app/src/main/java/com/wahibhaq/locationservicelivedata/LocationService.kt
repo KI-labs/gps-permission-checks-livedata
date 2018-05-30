@@ -18,7 +18,7 @@ import com.google.android.gms.location.LocationServices
 import timber.log.Timber
 
 
-class FakeLocationService : LifecycleService() {
+class LocationService : LifecycleService() {
 
     private lateinit var notificationsUtil: NotificationsUtil
 
@@ -42,8 +42,6 @@ class FakeLocationService : LifecycleService() {
         observeAndReactToGps()
         return Service.START_STICKY
     }
-
-    //TODO Need to combine these two observers somehow or pair the results otherwise there could be a conflict
 
     private fun observeAndReactToPermissions() {
         PermissionStatusListener(this.application)
@@ -172,6 +170,7 @@ class FakeLocationService : LifecycleService() {
     }
 
     companion object {
+        //Refers to when app is listening to location updates
         var isTrackingRunning: Boolean = false
     }
 }

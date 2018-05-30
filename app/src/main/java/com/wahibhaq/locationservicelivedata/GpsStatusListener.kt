@@ -12,7 +12,6 @@ import android.location.LocationManager
  * Listens to Gps (location service) which is highly important for tracking to work and then
  * responds with appropriate state specified in {@link GpsStatus}
  */
-//TODO see if can be converted to object
 class GpsStatusListener(
     private val application: Application
 ) : LiveData<GpsStatus>() {
