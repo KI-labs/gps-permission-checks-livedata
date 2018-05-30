@@ -1,5 +1,6 @@
 package com.wahibhaq.locationservicelivedata
 
+import android.app.Application
 import android.arch.lifecycle.LiveData
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -7,51 +8,63 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.location.LocationManager
 
-
+/**
+ * Listens to Gps (location service) which is highly important for tracking to work and then
+ * responds with appropriate state specified in {@link GpsStatus}
+ */
+//TODO see if can be converted to object
 class GpsStatusListener(
-    private val context: Context
-) : LiveData<CustomLocationResult>() {
+    private val application: Application
+) : LiveData<GpsStatus>() {
+
+    private var gpsSwitchStateReceiver: BroadcastReceiver? = null
 
     override fun onInactive() {
         super.onInactive()
-        context.unregisterReceiver(gpsSwitchStateReceiver)
+        unregisterReceiver()
     }
 
+    private fun unregisterReceiver() {
+        gpsSwitchStateReceiver?.let {
+            application.unregisterReceiver(gpsSwitchStateReceiver)
+        }
+    }
 
     override fun onActive() {
         super.onActive()
-        context.registerReceiver(
-            gpsSwitchStateReceiver, IntentFilter(
-                LocationManager
-                    .PROVIDERS_CHANGED_ACTION
-            )
-        )
+        registerReceiver()
         checkGpsAndReact() //Need to explicitly call for the first time check
     }
 
     private fun checkGpsAndReact() {
-        if (AppUtil.isLocationEnabled(context)) {
-            postValue(CustomLocationResult.GpsIsEnabled("Gps Is Enabled"))
+        if (AppUtil.isLocationEnabled(application)) {
+            postValue(GpsStatus.GpsIsEnabled("Gps Is Enabled"))
         } else {
-            postValue(CustomLocationResult.GpsIsDisabled("GPS Is Disabled"))
+            postValue(GpsStatus.GpsIsDisabled("GPS Is Disabled"))
         }
     }
 
     /**
      * Following broadcast receiver is to listen the Location button toggle state in Android.
      */
-    private val gpsSwitchStateReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action.matches("android.location.PROVIDERS_CHANGED".toRegex())) {
-                checkGpsAndReact()
+    private fun registerReceiver() {
+        if (gpsSwitchStateReceiver == null) {
+            gpsSwitchStateReceiver = object : BroadcastReceiver() {
+                override fun onReceive(context: Context, intent: Intent) {
+                    if (intent.action.matches("android.location.PROVIDERS_CHANGED".toRegex())) {
+                        checkGpsAndReact()
+                    }
+                }
             }
         }
+        application.registerReceiver(
+            gpsSwitchStateReceiver, IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION)
+        )
     }
 
 }
 
-sealed class CustomLocationResult {
-    data class GpsIsDisabled(val message: String) : CustomLocationResult()
-
-    data class GpsIsEnabled(val message: String) : CustomLocationResult()
+sealed class GpsStatus {
+    data class GpsIsDisabled(val message: String) : GpsStatus()
+    data class GpsIsEnabled(val message: String) : GpsStatus()
 }
