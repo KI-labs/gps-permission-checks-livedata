@@ -7,7 +7,7 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import kotlinx.android.synthetic.main.activity_main.*
 
-
+//TODO Inject locationServiceListener and use that to start and stop
 class MainActivity : AppCompatActivity() {
 
     private lateinit var locationServiceListener: LocationServiceListener
