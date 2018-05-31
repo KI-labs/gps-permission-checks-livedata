@@ -5,13 +5,16 @@ import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
-import android.widget.Toast
 import kotlinx.android.synthetic.main.activity_main.*
 
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var locationServiceListener: LocationServiceListener
+
+    private lateinit var localGpsStatus: GpsStatus
+
+    private lateinit var localPermissionStatus: PermissionStatus
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,57 +25,109 @@ class MainActivity : AppCompatActivity() {
             Intent(applicationContext, LocationService::class.java)
         )
 
+        observeAndDisplayGpsStatus()
+        observeAndDisplayPermissionStatus()
+
         btnInitTracking.setOnClickListener {
-            if (AppUtil.isLocationEnabled(this)) {
-                if (!LocationService.isTrackingRunning) {
-                    observeAndReactToPermissionsCheck()
-                } else if (LocationService.isTrackingRunning) {
-                    locationServiceListener.unsubscribeFromLocationUpdates()
-                    btnInitTracking.text = getString(R.string.button_text_start)
+            if (!LocationService.isTrackingRunning && !LocationService.isServiceRunning) {
+
+                if (localGpsStatus is GpsStatus.GpsIsEnabled) {
+
+                    when (localPermissionStatus) {
+
+                        is PermissionStatus.Granted -> startDrive()
+
+                        is PermissionStatus.Denied -> {
+                            AppUtil.showEnablePermissionDialog(this@MainActivity,
+                                DialogInterface.OnClickListener { _, _ ->
+                                    endDrive()
+                                })
+                        }
+
+                        is PermissionStatus.Blocked -> {
+                            AppUtil.showEnablePermissionDialog(this@MainActivity,
+                                DialogInterface.OnClickListener { _, _ ->
+                                    endDrive()
+                                })
+                        }
+                    }
+                } else {
+                    AppUtil.showEnableGpsDialog(this)
                 }
             } else {
-                AppUtil.showGPSNotEnabledDialog(this)
+                endDrive()
             }
         }
 
     }
 
-    private fun observeAndReactToPermissionsCheck() {
-        PermissionStatusListener(this.application)
-            .observe(this, Observer { permissionState ->
-                when (permissionState) {
+    private fun startDrive() {
+        locationServiceListener.subscribeToLocationUpdates()
+        btnInitTracking.text = getString(R.string.button_text_end)
+    }
+
+    private fun endDrive() {
+        locationServiceListener.unsubscribeFromLocationUpdates()
+        btnInitTracking.text = getString(R.string.button_text_start)
+    }
+
+    private fun observeAndDisplayGpsStatus() {
+        GpsStatusListener(this.application).observe(this,
+            Observer { status ->
+
+                localGpsStatus = status!!
+                when (status) {
+                    is GpsStatus.GpsIsEnabled -> {
+                        gpsStatusDisplay.text = String.format(
+                            getString(
+                                R.string
+                                    .gps_status_label
+                            ), status.message
+                        )
+                    }
+
+                    is GpsStatus.GpsIsDisabled -> {
+                        gpsStatusDisplay.text = String.format(
+                            getString(
+                                R.string
+                                    .gps_status_label
+                            ), status.message
+                        )
+                    }
+                }
+            })
+    }
+
+    private fun observeAndDisplayPermissionStatus() {
+        PermissionStatusListener((this.application)).observe(this,
+            Observer { status ->
+                localPermissionStatus = status!!
+                when (status) {
                     is PermissionStatus.Granted -> {
-                        if (!LocationService.isTrackingRunning) {
-                            Toast.makeText(
-                                this@MainActivity, "Permission Already Granted", Toast
-                                    .LENGTH_SHORT
-                            ).show()
-                            locationServiceListener.subscribeToLocationUpdates()
-                            btnInitTracking.text = getString(R.string.button_text_end)
-                        }
+                        permissionStatusDisplay.text = String.format(
+                            getString(
+                                R.string
+                                    .permission_status_label
+                            ), status.message
+                        )
                     }
 
                     is PermissionStatus.Denied -> {
-                        //End of Drive. Maybe you would like to do something with coordinates
-
-                        Toast.makeText(this@MainActivity, "Permission Denied", Toast.LENGTH_SHORT)
-                            .show()
+                        permissionStatusDisplay.text = String.format(
+                            getString(
+                                R.string
+                                    .permission_status_label
+                            ), status.message
+                        )
                     }
 
                     is PermissionStatus.Blocked -> {
-                        //End of Drive. Maybe you would like to do something with coordinates
-
-                        Toast.makeText(
-                            this@MainActivity,
-                            "Permission Permanently Denied",
-                            Toast.LENGTH_SHORT
+                        permissionStatusDisplay.text = String.format(
+                            getString(
+                                R.string
+                                    .permission_status_label
+                            ), status.message
                         )
-                            .show()
-
-                        AppUtil.showPermissionsPermanentlyDeniedDialog(this@MainActivity,
-                            DialogInterface.OnClickListener { _, _ ->
-                                locationServiceListener.unsubscribeFromLocationUpdates()
-                            })
                     }
                 }
             })
@@ -80,7 +135,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        when (LocationService.isTrackingRunning) {
+        when (LocationService.isServiceRunning) {
             true -> btnInitTracking.text = getString(R.string.button_text_end)
             false -> btnInitTracking.text = getString(R.string.button_text_start)
         }

@@ -115,6 +115,7 @@ class LocationService : LifecycleService() {
     }
 
     private fun showOnGoingNotification(message: String) {
+        isServiceRunning = true
         Intent(this, MainActivity::class.java)
             .let { PendingIntent.getActivity(this, 0, it, 0) }
             .let { pendingIntent ->
@@ -154,11 +155,13 @@ class LocationService : LifecycleService() {
 
     private fun unregisterLocationUpdates() {
         isTrackingRunning = false
+        isServiceRunning = false
         try {
             fusedLocationClient.removeLocationUpdates(locationCallback)
         } catch (unlikely: SecurityException) {
             Timber.e("Error when unregisterLocationUpdated()")
         }
+        notificationsUtil.cancelAlertNotification()
     }
 
     private fun registerLocationUpdates() {
@@ -175,6 +178,8 @@ class LocationService : LifecycleService() {
     }
 
     companion object {
+        //Refers to when this service is running and foreground notification is being displayed
+        var isServiceRunning: Boolean = false
         //Refers to when app is listening to location updates
         var isTrackingRunning: Boolean = false
     }

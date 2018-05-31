@@ -23,7 +23,7 @@ object AppUtil {
         return locationMode != Settings.Secure.LOCATION_MODE_OFF
     }
 
-    fun showPermissionsPermanentlyDeniedDialog(context: Context, listener: DialogInterface.OnClickListener) {
+    fun showEnablePermissionDialog(context: Context, listener: DialogInterface.OnClickListener) {
         AlertDialog.Builder(context)
             .setTitle(R.string.permissions_required)
             .setMessage(R.string.dialog_message_permanently_denied_permissions)
@@ -39,7 +39,7 @@ object AppUtil {
             .show()
     }
 
-    fun showGPSNotEnabledDialog(context: Context) {
+    fun showEnableGpsDialog(context: Context) {
         AlertDialog.Builder(context)
             .setTitle(R.string.gps_required)
             .setMessage(R.string.dialog_message_gps_disabled)
