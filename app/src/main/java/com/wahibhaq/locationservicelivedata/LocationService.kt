@@ -38,35 +38,38 @@ class LocationService : LifecycleService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
-        observeAndReactToPermissions()
-        observeAndReactToGps()
+        observeAndReactToPermissionsCheck()
+        observeAndReactToGpsCheck()
         return Service.START_STICKY
     }
 
-    private fun observeAndReactToPermissions() {
+    private fun observeAndReactToPermissionsCheck() {
         PermissionStatusListener(this.application)
             .observe(this, Observer { permissionState ->
                 when (permissionState) {
                     is PermissionStatus.Granted -> {
-                        registerLocationUpdates()
-                        showOnGoingNotification(permissionState.message)
+                        triggerInProgressState()
                         stateIsInProgress = true
                     }
 
                     is PermissionStatus.Denied -> {
+                        //End of Drive. Maybe you would like to do something with coordinates
+
                         unregisterLocationUpdates()
-                        showOnGoingNotification(permissionState.message)
+                        stopSelf()
                     }
 
                     is PermissionStatus.Blocked -> {
+                        //End of Drive. Maybe you would like to do something with coordinates
+
                         unregisterLocationUpdates()
-                        showOnGoingNotification(permissionState.message)
+                        stopSelf()
                     }
                 }
             })
     }
 
-    private fun observeAndReactToGps() {
+    private fun observeAndReactToGpsCheck() {
         GpsStatusListener(this.application).observe(
             this, Observer { gpsState ->
                 when (gpsState) {
@@ -77,7 +80,7 @@ class LocationService : LifecycleService() {
                         //Only override the message if it was not displaying any permission warnings
                         //Permissions message has a higher priority
                         if (stateIsInProgress) {
-                            showOnGoingNotification("Listening to Location...")
+                            showOnGoingNotification("Waiting for GPS to be enabled")
                         }
 
                         showGpsIsDisabledNotification()
@@ -85,16 +88,18 @@ class LocationService : LifecycleService() {
 
                     is GpsStatus.GpsIsEnabled -> {
                         Timber.i(gpsState.message)
-                        if (stateIsInProgress) {
-                            showOnGoingNotification("In Progress")
-                        }
-                        registerLocationUpdates() //We only start listening when Gps and
-                        // Permissions are there
+                        triggerInProgressState()
                         notificationsUtil.cancelAlertNotification()
                     }
                 }
             }
         )
+    }
+
+    private fun triggerInProgressState() {
+        showOnGoingNotification("In Progress")
+        registerLocationUpdates() //We only start listening when Gps and
+        // Permissions are there
     }
 
     private fun showGpsIsDisabledNotification() {

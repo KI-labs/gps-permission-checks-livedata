@@ -30,7 +30,7 @@ class PermissionStatusListener(private val application: Application) : LiveData<
                 .sendDontAskAgainToSettings(true),
             object : PermissionHandler() {
                 override fun onGranted() {
-                    postValue(PermissionStatus.Granted("In Progress"))
+                    postValue(PermissionStatus.Granted("Permission Granted"))
                 }
 
                 override fun onDenied(context: Context?, deniedPermissions: ArrayList<String>?) {
