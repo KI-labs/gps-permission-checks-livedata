@@ -1,20 +1,22 @@
 package com.wahibhaq.locationservicelivedata
 
-import android.app.Application
 import android.arch.lifecycle.LiveData
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.location.LocationManager
+import android.provider.Settings
 
 /**
  * Listens to Gps (location service) which is highly important for tracking to work and then
  * responds with appropriate state specified in {@link GpsStatus}
  */
-class GpsStatusListener(
-    private val application: Application
-) : LiveData<GpsStatus>() {
+class GpsStatusListener(private val context: Context) : LiveData<GpsStatus>() {
+
+    init {
+        checkGpsAndReact() //Need to explicitly call for the first time check
+    }
 
     private var gpsSwitchStateReceiver: BroadcastReceiver? = null
 
@@ -25,22 +27,31 @@ class GpsStatusListener(
 
     private fun unregisterReceiver() {
         gpsSwitchStateReceiver?.let {
-            application.unregisterReceiver(gpsSwitchStateReceiver)
+            context.unregisterReceiver(gpsSwitchStateReceiver)
         }
     }
 
     override fun onActive() {
         super.onActive()
         registerReceiver()
-        checkGpsAndReact() //Need to explicitly call for the first time check
     }
 
-    private fun checkGpsAndReact() {
-        if (AppUtil.isLocationEnabled(application)) {
-            postValue(GpsStatus.GpsIsEnabled("Gps Is Enabled"))
-        } else {
-            postValue(GpsStatus.GpsIsDisabled("GPS Is Disabled"))
+    private fun checkGpsAndReact() = if (isLocationEnabled()) {
+        postValue(GpsStatus.GpsIsEnabled("GPS is Enabled"))
+    } else {
+        postValue(GpsStatus.GpsIsDisabled("GPS is Disabled"))
+    }
+
+    private fun isLocationEnabled(): Boolean {
+        val locationMode: Int
+        try {
+            locationMode = Settings.Secure.getInt(context.contentResolver,
+                    Settings.Secure.LOCATION_MODE)
+        } catch (e: Settings.SettingNotFoundException) {
+            e.printStackTrace()
+            return false
         }
+        return locationMode != Settings.Secure.LOCATION_MODE_OFF
     }
 
     /**
@@ -56,9 +67,8 @@ class GpsStatusListener(
                 }
             }
         }
-        application.registerReceiver(
-            gpsSwitchStateReceiver, IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION)
-        )
+        context.registerReceiver(gpsSwitchStateReceiver,
+                IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION))
     }
 
 }

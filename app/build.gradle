@@ -29,7 +29,7 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation "com.android.support:support-v4:$supportlib"
     implementation "com.android.support:appcompat-v7:$supportlib"
-    implementation 'com.android.support.constraint:constraint-layout:1.1.0'
+    implementation 'com.android.support.constraint:constraint-layout:1.1.1'
     implementation "android.arch.lifecycle:runtime:$aac_lifecycle"
     implementation "android.arch.lifecycle:extensions:$aac_lifecycle"
     kapt "android.arch.lifecycle:compiler:$aac_lifecycle"
