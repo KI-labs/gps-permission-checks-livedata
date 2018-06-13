@@ -10,6 +10,7 @@ import android.support.v7.app.AppCompatActivity
 import com.wahibhaq.locationservicelivedata.LocationService.Companion.isServiceRunning
 import com.wahibhaq.locationservicelivedata.LocationService.Companion.isTrackingRunning
 import kotlinx.android.synthetic.main.activity_main.*
+import timber.log.Timber
 
 
 //TODO Inject locationServiceListener and use that to start and stop
@@ -27,8 +28,7 @@ class MainActivity : AppCompatActivity() {
 
         locationServiceListener = LocationServiceListener(
                 applicationContext,
-                Intent(applicationContext, LocationService::class.java)
-        )
+                Intent(applicationContext, LocationService::class.java))
 
         observeOnGpsStatus()
         setupButtonAndUI()
@@ -50,11 +50,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startTracking() {
+        Timber.i("Tracking start triggered from Activity")
         locationServiceListener.subscribeToLocationUpdates()
         btnInitTracking.text = getString(R.string.button_text_end)
     }
 
     private fun stopTracking() {
+        Timber.i("Tracking stop triggered from Activity")
         locationServiceListener.unsubscribeFromLocationUpdates()
         btnInitTracking.text = getString(R.string.button_text_start)
     }
@@ -89,6 +91,7 @@ class MainActivity : AppCompatActivity() {
                     Observer { status ->
                         when (status) {
                             is PermissionStatus.Granted -> {
+                                Timber.i("Permission granted in Activity")
                                 permissionStatusDisplay.text = status.message
                                 permissionStatusDisplay.setTextColor(Color.GREEN)
 
@@ -96,11 +99,13 @@ class MainActivity : AppCompatActivity() {
                             }
 
                             is PermissionStatus.Denied -> {
+                                Timber.i("Permission denied in Activity")
                                 permissionStatusDisplay.text = status.message
                                 permissionStatusDisplay.setTextColor(Color.RED)
                             }
 
                             is PermissionStatus.Blocked -> {
+                                Timber.i("Permission blocked in Activity")
                                 permissionStatusDisplay.text = status.message
                                 permissionStatusDisplay.setTextColor(Color.RED)
                             }

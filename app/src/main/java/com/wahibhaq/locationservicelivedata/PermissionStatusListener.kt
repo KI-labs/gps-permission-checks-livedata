@@ -34,7 +34,7 @@ class PermissionStatusListener(private val context: Context) : LiveData<Permissi
 
     private fun handleRuntimePermissionCheck() = Permissions.check(context,
             arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-            R.string.dialog_message_permanently_denied_permissions,
+            R.string.dialog_message_denied_permissions,
             Permissions.Options()
                     .setSettingsDialogTitle(context.getString(R.string.permission_required))
                     .setSettingsDialogMessage(context.getString(R.string.dialog_message_blocked_permission))

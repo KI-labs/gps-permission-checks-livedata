@@ -15,46 +15,46 @@ const val NOTIFICATION_CHANNEL_ONGOING_ID = "com.wahibhaq.locationservicelivedat
 const val NOTIFICATION_CHANNEL_ALERTS_ID = "com.wahibhaq.locationservicelivedata.alerts"
 
 class NotificationsUtil(
-    private val context: Context,
-    private val notificationManager: NotificationManager
+        private val context: Context,
+        private val notificationManager: NotificationManager
 ) {
 
     fun createOngoingNotification(
-        service: Service,
-        title: String,
-        text: String,
-        pendingIntent: PendingIntent?
+            service: Service,
+            title: Int,
+            text: Int,
+            pendingIntent: PendingIntent?
     ) {
         createOngoingNotificationChannel()
         service.startForeground(
-            ONGOING_NOTIFICATION_ID,
-            NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ONGOING_ID)
-                .setContentTitle(title)
-                .setOngoing(true)
-                .setContentText(text)
-                .setSmallIcon(R.mipmap.ic_launcher_round)
-                .setContentIntent(pendingIntent)
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setStyle(NotificationCompat.DecoratedCustomViewStyle())
-                .build()
+                ONGOING_NOTIFICATION_ID,
+                NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ONGOING_ID)
+                        .setContentTitle(context.getString(title))
+                        .setOngoing(true)
+                        .setContentText(context.getString(text))
+                        .setSmallIcon(R.mipmap.ic_launcher_round)
+                        .setContentIntent(pendingIntent)
+                        .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                        .setStyle(NotificationCompat.DecoratedCustomViewStyle())
+                        .build()
         )
     }
 
     fun createAlertNotification(
-        title: String, text: String,
-        pendingIntent: PendingIntent? = null
+            title: Int, text: Int,
+            pendingIntent: PendingIntent? = null
     ) {
         createAlertsNotificationChannel()
         val notification = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ALERTS_ID)
-            .setContentTitle(title)
-            .setOngoing(false)
-            .setAutoCancel(true)
-            .setContentText(text)
-            .setSmallIcon(R.mipmap.ic_launcher_round)
-            .setContentIntent(pendingIntent)
-            .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setOnlyAlertOnce(true)
-            .build()
+                .setContentTitle(context.getString(title))
+                .setOngoing(false)
+                .setAutoCancel(true)
+                .setContentText(context.getString(text))
+                .setSmallIcon(R.mipmap.ic_launcher_round)
+                .setContentIntent(pendingIntent)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setOnlyAlertOnce(true)
+                .build()
 
         notificationManager.notify(ALERT_NOTIFICATION_ID, notification)
     }
@@ -62,24 +62,22 @@ class NotificationsUtil(
     private fun createOngoingNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel(
-                NOTIFICATION_CHANNEL_ONGOING_ID, NOTIFICATION_CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_MIN
-            )
-                .let { channel ->
-                    notificationManager.createNotificationChannel(channel)
-                }
+                    NOTIFICATION_CHANNEL_ONGOING_ID, NOTIFICATION_CHANNEL_NAME,
+                    NotificationManager.IMPORTANCE_MIN)
+                    .let { channel ->
+                        notificationManager.createNotificationChannel(channel)
+                    }
         }
     }
 
     private fun createAlertsNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel(
-                NOTIFICATION_CHANNEL_ALERTS_ID, NOTIFICATION_CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_HIGH
-            )
-                .let { channel ->
-                    notificationManager.createNotificationChannel(channel)
-                }
+                    NOTIFICATION_CHANNEL_ALERTS_ID, NOTIFICATION_CHANNEL_NAME,
+                    NotificationManager.IMPORTANCE_HIGH)
+                    .let { channel ->
+                        notificationManager.createNotificationChannel(channel)
+                    }
         }
     }
 

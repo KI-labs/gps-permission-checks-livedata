@@ -1,5 +1,6 @@
 package com.wahibhaq.locationservicelivedata
 
+import android.Manifest
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
@@ -7,9 +8,12 @@ import android.arch.lifecycle.LifecycleService
 import android.arch.lifecycle.Observer
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.IBinder
 import android.os.Looper
 import android.provider.Settings
+import android.support.v4.app.ActivityCompat
 import android.text.format.DateUtils
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
@@ -36,85 +40,88 @@ class LocationService : LifecycleService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
-        observeAndReactToPermissionsCheck()
-        observeAndReactToGpsCheck()
+        Timber.i("Tracking service getting started")
+        checkGpsAndThenPermission()
         return Service.START_STICKY
     }
 
-    private fun observeAndReactToPermissionsCheck() = PermissionStatusListener(this.application)
-            .observe(this, Observer { permissionState ->
-                when (permissionState) {
-                    is PermissionStatus.Granted -> {
-                        startTracking()
-                        Timber.i(permissionState.message)
-                    }
+    private fun checkLocationPermission() {
+        val isPermissionGranted = ActivityCompat.checkSelfPermission(context,
+                Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
-                    is PermissionStatus.Denied -> {
-                        //End of Tracking. Maybe you would like to save coordinates
-
-                        Timber.w(permissionState.message)
-                        stopTracking()
-                    }
-
-                    is PermissionStatus.Blocked -> {
-                        //End of Tracking. Maybe you would like to save coordinates
-
-                        Timber.w(permissionState.message)
-                        stopTracking()
-                    }
-                }
-            })
-
-    private fun stopTracking() {
-        unregisterLocationUpdates()
-        stopSelf()
+        if (isPermissionGranted) {
+            Timber.i("Permission Granted in Service")
+            notificationsUtil.cancelAlertNotification()
+            startTracking()
+        } else {
+            Timber.w("Permission Denied in Service")
+            stopTracking()
+            showPermissionIsMissingNotification()
+            stopSelf()
+        }
     }
 
-    private fun observeAndReactToGpsCheck() = GpsStatusListener(this.application).observe(
+    private fun showPermissionIsMissingNotification() {
+        // Clicking notification will taker user to enable location setting screen
+        val resultIntent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.fromParts("package", packageName, null))
+        val pendingIntent = PendingIntent.getActivity(
+                context, 0, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT)
+
+        notificationsUtil.createAlertNotification(
+                R.string.permission_required,
+                R.string.dialog_message_denied_permissions,
+                pendingIntent)
+    }
+
+    private fun checkGpsAndThenPermission() = GpsStatusListener(this.application).observe(
             this, Observer { gpsState ->
         when (gpsState) {
             is GpsStatus.GpsIsDisabled -> {
-                Timber.e(gpsState.message)
-                unregisterLocationUpdates()
-
-                showOnGoingNotification("Waiting for GPS to be enabled")
+                Timber.w(gpsState.message)
+                stopTracking()
+                showOnGoingNotification(R.string.notif_gps_waiting_body)
                 showGpsIsDisabledNotification()
             }
 
             is GpsStatus.GpsIsEnabled -> {
                 Timber.i(gpsState.message)
-                startTracking()
                 notificationsUtil.cancelAlertNotification()
+                checkLocationPermission()
             }
         }
     })
 
     private fun startTracking() {
-        showOnGoingNotification("Location Tracking is in Progress...")
+        showOnGoingNotification(R.string.notification_in_progress)
         registerLocationUpdates() //We only start listening when Gps and Location Permission is enabled
+    }
+
+    private fun stopTracking() {
+        //saveTrackingResults() //Maybe store coordinates at this point
+        unregisterLocationUpdates()
     }
 
     private fun showGpsIsDisabledNotification() {
         // Clicking notification will taker user to enable location setting screen
         val resultIntent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
         val pendingIntent = PendingIntent.getActivity(
-                context, 0, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT
-        )
+                context, 0, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT)
+
         notificationsUtil.createAlertNotification(
-                "GPS Not Enabled!", "Enable GPS otherwise location tracking won't work",
-                pendingIntent
-        )
+                R.string.notif_gps_not_enabled_title,
+                R.string.notif_gps_not_enabled_body,
+                pendingIntent)
     }
 
-    private fun showOnGoingNotification(message: String) {
+    private fun showOnGoingNotification(message: Int) {
+        Timber.i("showing ongoing notification")
         isServiceRunning = true
         Intent(this, MainActivity::class.java)
                 .let { PendingIntent.getActivity(this, 0, it, 0) }
                 .let { pendingIntent ->
-                    notificationsUtil.createOngoingNotification(
-                            this,
-                            "Location Tracking", message, pendingIntent
-                    )
+                    notificationsUtil.createOngoingNotification(this,
+                            R.string.notif_ongoing_title, message, pendingIntent)
                 }
     }
 
@@ -122,9 +129,8 @@ class LocationService : LifecycleService() {
         super.onCreate()
         context = applicationContext
 
-        notificationsUtil = NotificationsUtil(
-                context, context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        )
+        notificationsUtil = NotificationsUtil(context,
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
@@ -141,11 +147,13 @@ class LocationService : LifecycleService() {
     }
 
     override fun onDestroy() {
-        unregisterLocationUpdates()
+        Timber.i("Service is destroyed now")
+        stopTracking()
         super.onDestroy()
     }
 
     private fun unregisterLocationUpdates() {
+        Timber.i("Unregistering location update listener")
         isTrackingRunning = false
         isServiceRunning = false
         try {
@@ -153,10 +161,10 @@ class LocationService : LifecycleService() {
         } catch (unlikely: SecurityException) {
             Timber.e("Error when unregisterLocationUpdated()")
         }
-        notificationsUtil.cancelAlertNotification()
     }
 
     private fun registerLocationUpdates() {
+        Timber.i("Registering location update listener")
         isTrackingRunning = true
         try {
             fusedLocationClient.requestLocationUpdates(
