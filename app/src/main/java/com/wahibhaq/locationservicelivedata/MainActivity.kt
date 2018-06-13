@@ -51,14 +51,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun startTracking() {
         Timber.i("Tracking start triggered from Activity")
-        locationServiceListener.subscribeToLocationUpdates()
         btnInitTracking.text = getString(R.string.button_text_end)
+        locationServiceListener.subscribeToLocationUpdates()
     }
 
     private fun stopTracking() {
         Timber.i("Tracking stop triggered from Activity")
-        locationServiceListener.unsubscribeFromLocationUpdates()
         btnInitTracking.text = getString(R.string.button_text_start)
+        locationServiceListener.unsubscribeFromLocationUpdates()
     }
 
     private fun observeOnGpsStatus() = GpsStatusListener(this.application).observe(this,
@@ -74,14 +74,12 @@ class MainActivity : AppCompatActivity() {
         is GpsStatus.GpsIsEnabled -> {
             gpsStatusDisplay.text = (localGpsStatus as GpsStatus.GpsIsEnabled).message
             gpsStatusDisplay.setTextColor(Color.GREEN)
-
             observeAndDisplayPermissionStatus()
         }
 
         is GpsStatus.GpsIsDisabled -> {
             gpsStatusDisplay.text = (localGpsStatus as GpsStatus.GpsIsDisabled).message
             gpsStatusDisplay.setTextColor(Color.RED)
-
             showGpsNotEnabledDialog()
         }
     }
@@ -112,8 +110,10 @@ class MainActivity : AppCompatActivity() {
                         }
                     })
 
+
     override fun onResume() {
         super.onResume()
+        triggerSourceIsButton = false
         when (isServiceRunning) {
             true -> btnInitTracking.text = getString(R.string.button_text_end)
             false -> btnInitTracking.text = getString(R.string.button_text_start)
@@ -124,7 +124,7 @@ class MainActivity : AppCompatActivity() {
             .setTitle(R.string.gps_required)
             .setMessage(R.string.dialog_message_gps_disabled)
             .setPositiveButton(R.string.action_settings) { _, _ ->
-                // Open the app's settings.
+                // Open app's settings.
                 val intent = Intent().apply {
                     action = Settings.ACTION_LOCATION_SOURCE_SETTINGS
                 }

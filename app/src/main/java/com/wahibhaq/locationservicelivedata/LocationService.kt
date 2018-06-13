@@ -42,6 +42,8 @@ class LocationService : LifecycleService() {
         super.onStartCommand(intent, flags, startId)
         Timber.i("Tracking service getting started")
         checkGpsAndThenPermission()
+
+        //Mainly because we want Service to restart if user invokes permission and notify him
         return Service.START_STICKY
     }
 
@@ -74,23 +76,23 @@ class LocationService : LifecycleService() {
                 pendingIntent)
     }
 
-    private fun checkGpsAndThenPermission() = GpsStatusListener(this.application).observe(
-            this, Observer { gpsState ->
-        when (gpsState) {
-            is GpsStatus.GpsIsDisabled -> {
-                Timber.w(gpsState.message)
-                stopTracking()
-                showOnGoingNotification(R.string.notif_gps_waiting_body)
-                showGpsIsDisabledNotification()
-            }
+    private fun checkGpsAndThenPermission() = GpsStatusListener(this.application)
+            .observe(this, Observer { gpsState ->
+                when (gpsState) {
+                    is GpsStatus.GpsIsDisabled -> {
+                        Timber.w(gpsState.message)
+                        stopTracking()
+                        showOnGoingNotification(R.string.notif_gps_waiting_body)
+                        showGpsIsDisabledNotification()
+                    }
 
-            is GpsStatus.GpsIsEnabled -> {
-                Timber.i(gpsState.message)
-                notificationsUtil.cancelAlertNotification()
-                checkLocationPermission()
-            }
-        }
-    })
+                    is GpsStatus.GpsIsEnabled -> {
+                        Timber.i(gpsState.message)
+                        notificationsUtil.cancelAlertNotification()
+                        checkLocationPermission()
+                    }
+                }
+            })
 
     private fun startTracking() {
         showOnGoingNotification(R.string.notification_in_progress)
@@ -160,6 +162,7 @@ class LocationService : LifecycleService() {
             fusedLocationClient.removeLocationUpdates(locationCallback)
         } catch (unlikely: SecurityException) {
             Timber.e("Error when unregisterLocationUpdated()")
+            error("Error when unregisterLocationUpdated()")
         }
     }
 
@@ -173,7 +176,7 @@ class LocationService : LifecycleService() {
             )
         } catch (unlikely: SecurityException) {
             Timber.e("Error when registerLocationUpdates()")
-
+            error("Error when registerLocationUpdates()")
         }
     }
 
