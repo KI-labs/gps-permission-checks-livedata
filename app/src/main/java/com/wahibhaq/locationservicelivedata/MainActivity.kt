@@ -12,7 +12,6 @@ import com.wahibhaq.locationservicelivedata.LocationService.Companion.isTracking
 import kotlinx.android.synthetic.main.activity_main.*
 import timber.log.Timber
 
-
 //TODO Inject locationServiceListener and use that to start and stop
 class MainActivity : AppCompatActivity() {
 
@@ -22,6 +21,35 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var localGpsStatus: GpsStatus
 
+    private val gpsObserver = Observer<GpsStatus> { status ->
+        localGpsStatus = status!!
+        checkGpsAndThenPermission()
+    }
+
+    private val permissionObserver = Observer<PermissionStatus> { status ->
+        when (status) {
+            is PermissionStatus.Granted -> {
+                Timber.i("Permission granted in Activity")
+                permissionStatusDisplay.text = status.message
+                permissionStatusDisplay.setTextColor(Color.GREEN)
+
+                if (triggerSourceIsButton) startTracking()
+            }
+
+            is PermissionStatus.Denied -> {
+                Timber.i("Permission denied in Activity")
+                permissionStatusDisplay.text = status.message
+                permissionStatusDisplay.setTextColor(Color.RED)
+            }
+
+            is PermissionStatus.Blocked -> {
+                Timber.i("Permission blocked in Activity")
+                permissionStatusDisplay.text = status.message
+                permissionStatusDisplay.setTextColor(Color.RED)
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -30,8 +58,12 @@ class MainActivity : AppCompatActivity() {
                 applicationContext,
                 Intent(applicationContext, LocationService::class.java))
 
-        observeOnGpsStatus()
         setupButtonAndUI()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        observeOnGpsStatus()
     }
 
     private fun setupButtonAndUI() {
@@ -61,11 +93,8 @@ class MainActivity : AppCompatActivity() {
         locationServiceListener.unsubscribeFromLocationUpdates()
     }
 
-    private fun observeOnGpsStatus() = GpsStatusListener(this.application).observe(this,
-            Observer { status ->
-                localGpsStatus = status!!
-                checkGpsAndThenPermission()
-            })
+    private fun observeOnGpsStatus() = GpsStatusListener(this)
+            .reObserve(this, gpsObserver)
 
     /**
      * First checks GPS and if Enabled then checks for Runtime Permissions
@@ -85,44 +114,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun observeAndDisplayPermissionStatus(): Any =
-            PermissionStatusListener((this.application)).observe(this,
-                    Observer { status ->
-                        when (status) {
-                            is PermissionStatus.Granted -> {
-                                Timber.i("Permission granted in Activity")
-                                permissionStatusDisplay.text = status.message
-                                permissionStatusDisplay.setTextColor(Color.GREEN)
-
-                                if (triggerSourceIsButton) startTracking()
-                            }
-
-                            is PermissionStatus.Denied -> {
-                                Timber.i("Permission denied in Activity")
-                                permissionStatusDisplay.text = status.message
-                                permissionStatusDisplay.setTextColor(Color.RED)
-                            }
-
-                            is PermissionStatus.Blocked -> {
-                                Timber.i("Permission blocked in Activity")
-                                permissionStatusDisplay.text = status.message
-                                permissionStatusDisplay.setTextColor(Color.RED)
-                            }
-                        }
-                    })
-
+            PermissionStatusListener((this)).reObserve(this, permissionObserver)
 
     override fun onResume() {
         super.onResume()
         triggerSourceIsButton = false
-        when (isServiceRunning) {
-            true -> btnInitTracking.text = getString(R.string.button_text_end)
-            false -> btnInitTracking.text = getString(R.string.button_text_start)
-        }
+        if (isServiceRunning) btnInitTracking.text = getString(R.string.button_text_end)
     }
 
     private fun showGpsNotEnabledDialog() = AlertDialog.Builder(this)
-            .setTitle(R.string.gps_required)
-            .setMessage(R.string.dialog_message_gps_disabled)
+            .setTitle(R.string.gps_required_title)
+            .setMessage(R.string.gps_required_body)
             .setPositiveButton(R.string.action_settings) { _, _ ->
                 // Open app's settings.
                 val intent = Intent().apply {

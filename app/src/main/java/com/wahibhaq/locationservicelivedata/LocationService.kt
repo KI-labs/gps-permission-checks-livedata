@@ -38,6 +38,24 @@ class LocationService : LifecycleService() {
         }
     }
 
+    private val gpsObserver = Observer<GpsStatus> { gpsState ->
+        when (gpsState) {
+            is GpsStatus.GpsIsDisabled -> {
+                Timber.w(gpsState.message)
+                stopTracking()
+                showOnGoingNotification(R.string.notif_gps_waiting_body)
+                showGpsIsDisabledNotification()
+            }
+
+            is GpsStatus.GpsIsEnabled -> {
+                Timber.i(gpsState.message)
+                notificationsUtil.cancelAlertNotification()
+                checkLocationPermission()
+            }
+        }
+    }
+
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
         Timber.i("Tracking service getting started")
@@ -71,31 +89,16 @@ class LocationService : LifecycleService() {
                 context, 0, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT)
 
         notificationsUtil.createAlertNotification(
-                R.string.permission_required,
-                R.string.dialog_message_denied_permissions,
+                R.string.permission_required_title,
+                R.string.permission_required_body,
                 pendingIntent)
     }
 
-    private fun checkGpsAndThenPermission() = GpsStatusListener(this.application)
-            .observe(this, Observer { gpsState ->
-                when (gpsState) {
-                    is GpsStatus.GpsIsDisabled -> {
-                        Timber.w(gpsState.message)
-                        stopTracking()
-                        showOnGoingNotification(R.string.notif_gps_waiting_body)
-                        showGpsIsDisabledNotification()
-                    }
-
-                    is GpsStatus.GpsIsEnabled -> {
-                        Timber.i(gpsState.message)
-                        notificationsUtil.cancelAlertNotification()
-                        checkLocationPermission()
-                    }
-                }
-            })
+    private fun checkGpsAndThenPermission() = GpsStatusListener(this)
+            .reObserve(this, gpsObserver)
 
     private fun startTracking() {
-        showOnGoingNotification(R.string.notification_in_progress)
+        showOnGoingNotification(R.string.notif_in_progress)
         registerLocationUpdates() //We only start listening when Gps and Location Permission is enabled
     }
 
@@ -111,8 +114,8 @@ class LocationService : LifecycleService() {
                 context, 0, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT)
 
         notificationsUtil.createAlertNotification(
-                R.string.notif_gps_not_enabled_title,
-                R.string.notif_gps_not_enabled_body,
+                R.string.gps_required_title,
+                R.string.gps_required_body,
                 pendingIntent)
     }
 
@@ -123,7 +126,7 @@ class LocationService : LifecycleService() {
                 .let { PendingIntent.getActivity(this, 0, it, 0) }
                 .let { pendingIntent ->
                     notificationsUtil.createOngoingNotification(this,
-                            R.string.notif_ongoing_title, message, pendingIntent)
+                            R.string.notif_location_tracking_title, message, pendingIntent)
                 }
     }
 

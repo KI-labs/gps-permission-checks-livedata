@@ -20,25 +20,25 @@ class PermissionStatusListener(private val context: Context) : LiveData<Permissi
 
     private val permissionHandler = object : PermissionHandler() {
         override fun onGranted() =
-                postValue(PermissionStatus.Granted("Permission already granted"))
+                postValue(PermissionStatus.Granted("Location permission is already granted"))
 
         override fun onDenied(context: Context?, deniedPermissions: ArrayList<String>?) =
-                postValue(PermissionStatus.Denied("Waiting for permission to be granted"))
+                postValue(PermissionStatus.Denied("Waiting for location permission to be granted"))
 
         override fun onJustBlocked(
                 context: Context?,
                 justBlockedList: ArrayList<String>?,
                 deniedPermissions: ArrayList<String>?
-        ) = postValue(PermissionStatus.Blocked("Waiting for permission to be unblocked"))
+        ) = postValue(PermissionStatus.Blocked("Waiting for location permission to be unblocked"))
     }
 
     private fun handleRuntimePermissionCheck() = Permissions.check(context,
             arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-            R.string.dialog_message_denied_permissions,
+            R.string.permission_required_body,
             Permissions.Options()
-                    .setSettingsDialogTitle(context.getString(R.string.permission_required))
-                    .setSettingsDialogMessage(context.getString(R.string.dialog_message_blocked_permission))
-                    .setRationaleDialogTitle(context.getString(R.string.permission_required)),
+                    .setSettingsDialogTitle(context.getString(R.string.permission_required_title))
+                    .setSettingsDialogMessage(context.getString(R.string.permission_blocked_body))
+                    .setRationaleDialogTitle(context.getString(R.string.permission_required_title)),
             permissionHandler)
 }
 
