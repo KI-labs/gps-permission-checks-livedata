@@ -61,7 +61,7 @@ class LocationService : LifecycleService() {
         Timber.i("Tracking service getting started")
         checkGpsAndThenPermission()
 
-        //Mainly because we want Service to restart if user invokes permission and notify him
+        //Mainly because we want Service to restart if user revokes permission and to notify him
         return Service.START_STICKY
     }
 
@@ -186,7 +186,10 @@ class LocationService : LifecycleService() {
     companion object {
         //Refers to when this service is running and foreground notification is being displayed
         var isServiceRunning: Boolean = false
+            private set
+
         //Refers to when app is listening to location updates
         var isTrackingRunning: Boolean = false
+            private set
     }
 }

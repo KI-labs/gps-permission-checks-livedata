@@ -53,13 +53,13 @@ class NotificationsUtil(
                 .setSmallIcon(R.mipmap.ic_launcher_round)
                 .setContentIntent(pendingIntent)
                 .setPriority(NotificationCompat.PRIORITY_MAX)
-                .setOnlyAlertOnce(true)
                 .build()
 
         notificationManager.notify(ALERT_NOTIFICATION_ID, notification)
     }
 
     private fun createOngoingNotificationChannel() {
+        //TODO What about else?
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel(
                     NOTIFICATION_CHANNEL_ONGOING_ID, NOTIFICATION_CHANNEL_NAME,
@@ -71,6 +71,7 @@ class NotificationsUtil(
     }
 
     private fun createAlertsNotificationChannel() {
+        //TODO What about else?
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel(
                     NOTIFICATION_CHANNEL_ALERTS_ID, NOTIFICATION_CHANNEL_NAME,

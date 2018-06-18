@@ -12,6 +12,8 @@ import com.wahibhaq.locationservicelivedata.LocationService.Companion.isTracking
 import kotlinx.android.synthetic.main.activity_main.*
 import timber.log.Timber
 
+
+
 //TODO Inject locationServiceListener and use that to start and stop
 class MainActivity : AppCompatActivity() {
 
@@ -31,7 +33,7 @@ class MainActivity : AppCompatActivity() {
             is PermissionStatus.Granted -> {
                 Timber.i("Permission granted in Activity")
                 permissionStatusDisplay.text = status.message
-                permissionStatusDisplay.setTextColor(Color.GREEN)
+                permissionStatusDisplay.setTextColor(Color.BLUE)
 
                 if (triggerSourceIsButton) startTracking()
             }
@@ -102,11 +104,12 @@ class MainActivity : AppCompatActivity() {
     private fun checkGpsAndThenPermission(): Any = when (localGpsStatus) {
         is GpsStatus.GpsIsEnabled -> {
             gpsStatusDisplay.text = (localGpsStatus as GpsStatus.GpsIsEnabled).message
-            gpsStatusDisplay.setTextColor(Color.GREEN)
+            gpsStatusDisplay.setTextColor(Color.BLUE)
             observeAndDisplayPermissionStatus()
         }
 
         is GpsStatus.GpsIsDisabled -> {
+            observeAndDisplayPermissionStatus()
             gpsStatusDisplay.text = (localGpsStatus as GpsStatus.GpsIsDisabled).message
             gpsStatusDisplay.setTextColor(Color.RED)
             showGpsNotEnabledDialog()

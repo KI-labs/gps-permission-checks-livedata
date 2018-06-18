@@ -8,8 +8,8 @@ import timber.log.Timber
 
 
 class LocationServiceListener(
-    private val context: Context,
-    private val serviceIntent: Intent
+        private val context: Context,
+        private val serviceIntent: Intent
 ) : LocationListener {
 
     @TargetApi(Build.VERSION_CODES.O)

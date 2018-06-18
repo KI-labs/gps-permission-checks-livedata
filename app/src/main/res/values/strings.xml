@@ -7,10 +7,10 @@
     <string name="gps_status_undefined">GPS Status is Undefined</string>
     <string name="notif_in_progress">In Progress…</string>
     <string name="gps_required_title">GPS Required</string>
-    <string name="permission_required_title">Permission Required</string>
+    <string name="permission_required_title">Location Permission Required</string>
     <string name="gps_required_body">Enable GPS otherwise location tracking won\'t work</string>
     <string name="notif_location_tracking_title">Location Tracking</string>
-    <string name="permission_required_body">Allow Location Permission otherwise location tracking won\'t work</string>
+    <string name="permission_required_body">Allow otherwise location tracking won\'t work</string>
     <string name="permission_blocked_body">Location Permission has been set not to ask again! Please provide it from Settings.</string>
     <string name="notif_gps_waiting_body">Waiting for GPS to be enabled…</string>
 </resources>
