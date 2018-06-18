@@ -109,7 +109,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         is GpsStatus.GpsIsDisabled -> {
-            observeAndDisplayPermissionStatus()
             gpsStatusDisplay.text = (localGpsStatus as GpsStatus.GpsIsDisabled).message
             gpsStatusDisplay.setTextColor(Color.RED)
             showGpsNotEnabledDialog()

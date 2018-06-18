@@ -7,6 +7,8 @@ import android.app.Service
 import android.content.Context
 import android.os.Build
 import android.support.v4.app.NotificationCompat
+import android.support.v4.app.NotificationCompat.DEFAULT_SOUND
+import android.support.v4.app.NotificationCompat.DEFAULT_VIBRATE
 
 const val ONGOING_NOTIFICATION_ID = 100
 const val ALERT_NOTIFICATION_ID = 200
@@ -53,6 +55,7 @@ class NotificationsUtil(
                 .setSmallIcon(R.mipmap.ic_launcher_round)
                 .setContentIntent(pendingIntent)
                 .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setDefaults(DEFAULT_SOUND or DEFAULT_VIBRATE)
                 .build()
 
         notificationManager.notify(ALERT_NOTIFICATION_ID, notification)
