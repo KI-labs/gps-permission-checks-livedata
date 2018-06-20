@@ -7,32 +7,30 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.location.LocationManager
 import android.provider.Settings
+import android.provider.Settings.Secure.*
+import timber.log.Timber
 
 /**
  * Listens to Gps (location service) which is highly important for tracking to work and then
  * responds with appropriate state specified in {@link GpsStatus}
  */
 class GpsStatusListener(private val context: Context) : LiveData<GpsStatus>() {
+    private val locationProviderRegex: Regex
 
     init {
         checkGpsAndReact() //Need to explicitly call for the first time check
+        locationProviderRegex = "android.location.PROVIDERS_CHANGED".toRegex()
     }
 
-    private var gpsSwitchStateReceiver: BroadcastReceiver? = null
-
-    override fun onInactive() {
-        super.onInactive()
-        unregisterReceiver()
+    private val gpsSwitchStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) =
+                intent.action.matches(locationProviderRegex)
+                        .let { checkGpsAndReact() }
     }
 
-    private fun unregisterReceiver() {
-        gpsSwitchStateReceiver?.let {
-            context.unregisterReceiver(gpsSwitchStateReceiver)
-        }
-    }
+    override fun onInactive() = unregisterReceiver()
 
     override fun onActive() {
-        super.onActive()
         registerReceiver()
     }
 
@@ -42,35 +40,22 @@ class GpsStatusListener(private val context: Context) : LiveData<GpsStatus>() {
         postValue(GpsStatus.GpsIsDisabled("GPS is Disabled"))
     }
 
-    private fun isLocationEnabled(): Boolean {
-        val locationMode: Int
-        try {
-            locationMode = Settings.Secure.getInt(context.contentResolver,
-                    Settings.Secure.LOCATION_MODE)
-        } catch (e: Settings.SettingNotFoundException) {
-            e.printStackTrace()
-            return false
-        }
-        return locationMode != Settings.Secure.LOCATION_MODE_OFF
+    private fun isLocationEnabled() = try {
+        getInt(context.contentResolver, LOCATION_MODE) != LOCATION_MODE_OFF
+    } catch (e: Settings.SettingNotFoundException) {
+        Timber.e(e)
+        false
     }
 
     /**
-     * Following broadcast receiver is to listen the Location button toggle state in Android.
+     * Broadcast receiver to listen the Location button toggle state in Android.
      */
-    private fun registerReceiver() {
-        if (gpsSwitchStateReceiver == null) {
-            gpsSwitchStateReceiver = object : BroadcastReceiver() {
-                override fun onReceive(context: Context, intent: Intent) {
-                    if (intent.action.matches("android.location.PROVIDERS_CHANGED".toRegex())) {
-                        checkGpsAndReact()
-                    }
-                }
-            }
-        }
-        context.registerReceiver(gpsSwitchStateReceiver,
-                IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION))
-    }
+    private fun registerReceiver() = context.registerReceiver(gpsSwitchStateReceiver,
+            IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION))
 
+    private fun unregisterReceiver() = gpsSwitchStateReceiver.let {
+        context.unregisterReceiver(gpsSwitchStateReceiver)
+    }
 }
 
 sealed class GpsStatus {

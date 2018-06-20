@@ -61,10 +61,6 @@ class MainActivity : AppCompatActivity() {
                 Intent(applicationContext, LocationService::class.java))
 
         setupButtonAndUI()
-    }
-
-    override fun onStart() {
-        super.onStart()
         observeOnGpsStatus()
     }
 
