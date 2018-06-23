@@ -1,6 +1,8 @@
 package com.wahibhaq.locationservicelivedata
 
+import android.app.NotificationManager
 import android.arch.lifecycle.Observer
+import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
@@ -13,7 +15,6 @@ import kotlinx.android.synthetic.main.activity_main.*
 import timber.log.Timber
 
 
-
 //TODO Inject locationServiceListener and use that to start and stop
 class MainActivity : AppCompatActivity() {
 
@@ -22,6 +23,8 @@ class MainActivity : AppCompatActivity() {
     private var triggerSourceIsButton = false
 
     private lateinit var localGpsStatus: GpsStatus
+
+    private lateinit var notificationsUtil: NotificationsUtil
 
     private val gpsObserver = Observer<GpsStatus> { status ->
         localGpsStatus = status!!
@@ -60,8 +63,12 @@ class MainActivity : AppCompatActivity() {
                 applicationContext,
                 Intent(applicationContext, LocationService::class.java))
 
+        notificationsUtil = NotificationsUtil(applicationContext,
+                applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+
         setupButtonAndUI()
         observeOnGpsStatus()
+        notificationsUtil.cancelAlertNotification() //to clear if there were any notifications
     }
 
     private fun setupButtonAndUI() {
@@ -80,7 +87,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startTracking() {
-        Timber.i("Tracking start triggered from Activity")
+        Timber.i("Tracking start triggered from Button on Activity")
         btnInitTracking.text = getString(R.string.button_text_end)
         locationServiceListener.subscribeToLocationUpdates()
     }
@@ -112,7 +119,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun observeAndDisplayPermissionStatus(): Any =
-            PermissionStatusListener((this)).reObserve(this, permissionObserver)
+            PermissionStatusListener(this).reObserve(this, permissionObserver)
 
     override fun onResume() {
         super.onResume()

@@ -1,6 +1,5 @@
 package com.wahibhaq.locationservicelivedata
 
-import android.Manifest
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
@@ -8,12 +7,10 @@ import android.arch.lifecycle.LifecycleService
 import android.arch.lifecycle.Observer
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.IBinder
 import android.os.Looper
 import android.provider.Settings
-import android.support.v4.app.ActivityCompat
 import android.text.format.DateUtils
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
@@ -25,8 +22,6 @@ import timber.log.Timber
 class LocationService : LifecycleService() {
 
     private lateinit var notificationsUtil: NotificationsUtil
-
-    private lateinit var context: Context
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
 
@@ -50,11 +45,40 @@ class LocationService : LifecycleService() {
             is GpsStatus.GpsIsEnabled -> {
                 Timber.i(gpsState.message)
                 notificationsUtil.cancelAlertNotification()
-                checkLocationPermission()
+                observeAndDisplayPermissionStatus()
             }
         }
     }
 
+    private val permissionObserver = Observer<PermissionStatus> { permissionStatus ->
+        when (permissionStatus) {
+            is PermissionStatus.Granted -> {
+                Timber.i("Permission Granted in Service")
+                notificationsUtil.cancelAlertNotification()
+                startTracking()
+            }
+
+            is PermissionStatus.Denied -> {
+                Timber.w("Permission Denied in Service")
+                stopTracking()
+                showPermissionIsMissingNotification()
+                stopSelf()
+            }
+        }
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        notificationsUtil = NotificationsUtil(applicationContext,
+                applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
+        locationRequest = LocationRequest.create().apply {
+            interval = 5 * DateUtils.SECOND_IN_MILLIS
+            priority = LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY
+        }
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
@@ -65,28 +89,16 @@ class LocationService : LifecycleService() {
         return Service.START_STICKY
     }
 
-    private fun checkLocationPermission() {
-        val isPermissionGranted = ActivityCompat.checkSelfPermission(context,
-                Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-
-        if (isPermissionGranted) {
-            Timber.i("Permission Granted in Service")
-            notificationsUtil.cancelAlertNotification()
-            startTracking()
-        } else {
-            Timber.w("Permission Denied in Service")
-            stopTracking()
-            showPermissionIsMissingNotification()
-            stopSelf()
-        }
-    }
+    private fun observeAndDisplayPermissionStatus(): Any =
+            PermissionStatusListener(applicationContext, isForService = true)
+                    .reObserve(this, permissionObserver)
 
     private fun showPermissionIsMissingNotification() {
         // Clicking notification will taker user to enable location setting screen
         val resultIntent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                 Uri.fromParts("package", packageName, null))
         val pendingIntent = PendingIntent.getActivity(
-                context, 0, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT)
+                applicationContext, 0, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT)
 
         notificationsUtil.createAlertNotification(
                 R.string.permission_required_title,
@@ -111,7 +123,7 @@ class LocationService : LifecycleService() {
         // Clicking notification will taker user to enable location setting screen
         val resultIntent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
         val pendingIntent = PendingIntent.getActivity(
-                context, 0, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT)
+                applicationContext, 0, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT)
 
         notificationsUtil.createAlertNotification(
                 R.string.gps_required_title,
@@ -128,22 +140,6 @@ class LocationService : LifecycleService() {
                     notificationsUtil.createOngoingNotification(this,
                             R.string.notif_location_tracking_title, message, pendingIntent)
                 }
-    }
-
-    override fun onCreate() {
-        super.onCreate()
-        context = applicationContext
-
-        notificationsUtil = NotificationsUtil(context,
-                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
-
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-
-        locationRequest = LocationRequest.create().apply {
-            interval = 5 * DateUtils.SECOND_IN_MILLIS
-            priority = LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY
-        }
-
     }
 
     override fun onBind(intent: Intent): IBinder {
