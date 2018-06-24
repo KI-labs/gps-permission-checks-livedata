@@ -2,6 +2,7 @@ package com.wahibhaq.locationservicelivedata
 
 import android.app.NotificationManager
 import android.arch.lifecycle.Observer
+import android.arch.lifecycle.ViewModelProviders
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
@@ -20,39 +21,71 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var locationServiceListener: LocationServiceListener
 
-    private var triggerSourceIsButton = false
+    private lateinit var notificationsUtil: NotificationsUtil
+
+    private lateinit var viewModel: MainViewModel
+
+    private var shouldEnableGpsClick = false
+
+    private var shouldEnablePermissionClick = false
 
     private lateinit var localGpsStatus: GpsStatus
 
-    private lateinit var notificationsUtil: NotificationsUtil
+    private lateinit var localPermissionStatus: PermissionStatus
 
-    private val gpsObserver = Observer<GpsStatus> { status ->
-        localGpsStatus = status!!
-        checkGpsAndThenPermission()
+    private val pairObserver = Observer<Pair<GpsStatus, PermissionStatus>> { pair ->
+                pair?.let {
+                    localGpsStatus = pair.first
+                    localPermissionStatus = pair.second
+                    handleGpsStatus(pair.first)
+                    handlePermissionStatus(pair.second)
+                }
+            }
+
+    private fun handleGpsStatus(status: GpsStatus) {
+        when (status) {
+            is GpsStatus.GpsIsEnabled -> {
+                shouldEnableGpsClick = false
+                gpsStatusDisplay.text = status.message
+                gpsStatusDisplay.setTextColor(Color.BLUE)
+            }
+
+            is GpsStatus.GpsIsDisabled -> {
+                shouldEnableGpsClick = true
+                gpsStatusDisplay.text = status.message
+                gpsStatusDisplay.setTextColor(Color.RED)
+                showGpsNotEnabledDialog()
+            }
+        }
     }
 
-    private val permissionObserver = Observer<PermissionStatus> { status ->
+    private fun handlePermissionStatus(status: PermissionStatus) {
         when (status) {
             is PermissionStatus.Granted -> {
+                shouldEnablePermissionClick = false
                 Timber.i("Permission granted in Activity")
                 permissionStatusDisplay.text = status.message
                 permissionStatusDisplay.setTextColor(Color.BLUE)
-
-                if (triggerSourceIsButton) startTracking()
             }
 
             is PermissionStatus.Denied -> {
+                shouldEnablePermissionClick = true
                 Timber.i("Permission denied in Activity")
                 permissionStatusDisplay.text = status.message
                 permissionStatusDisplay.setTextColor(Color.RED)
             }
 
             is PermissionStatus.Blocked -> {
+                shouldEnablePermissionClick = true
                 Timber.i("Permission blocked in Activity")
                 permissionStatusDisplay.text = status.message
                 permissionStatusDisplay.setTextColor(Color.RED)
             }
         }
+
+        btnInitTracking.isEnabled = shouldEnableGpsClick.not() && shouldEnablePermissionClick.not()
+        gpsStatusDisplay.isEnabled = shouldEnableGpsClick
+        permissionStatusDisplay.isEnabled = shouldEnablePermissionClick
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -67,23 +100,33 @@ class MainActivity : AppCompatActivity() {
                 applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
 
         setupButtonAndUI()
-        observeOnGpsStatus()
         notificationsUtil.cancelAlertNotification() //to clear if there were any notifications
+
+        viewModel = ViewModelProviders.of(this).get(MainViewModel::class.java)
+
+        //First checks GPS and if Enabled then checks for Runtime Permissions
+        viewModel.getStatusResponse().observe(this, pairObserver)
     }
 
     private fun setupButtonAndUI() {
-        btnInitTracking.setOnClickListener {
-            triggerSourceIsButton = true
-
-            //Only if there is a need and it's valid to start tracking
-            if (!isTrackingRunning && !isServiceRunning)
-                checkGpsAndThenPermission()
-            else
-                stopTracking() //To toggle state
-        }
-
         permissionStatusDisplay.text = getString(R.string.permission_status_undefined)
         gpsStatusDisplay.text = getString(R.string.gps_status_undefined)
+
+        btnInitTracking.setOnClickListener {
+            //Only if there is a need and it's valid to start tracking
+            if (!isTrackingRunning && !isServiceRunning) startTracking()
+            else stopTracking() //To toggle state
+        }
+
+        gpsStatusDisplay.setOnClickListener {
+            handleGpsStatus(localGpsStatus)
+        }
+
+        permissionStatusDisplay.setOnClickListener {
+            viewModel.getPermissionCheck().observe (this, Observer { state ->
+                handlePermissionStatus(state!!)
+            })
+        }
     }
 
     private fun startTracking() {
@@ -98,32 +141,8 @@ class MainActivity : AppCompatActivity() {
         locationServiceListener.unsubscribeFromLocationUpdates()
     }
 
-    private fun observeOnGpsStatus() = GpsStatusListener(this)
-            .reObserve(this, gpsObserver)
-
-    /**
-     * First checks GPS and if Enabled then checks for Runtime Permissions
-     */
-    private fun checkGpsAndThenPermission(): Any = when (localGpsStatus) {
-        is GpsStatus.GpsIsEnabled -> {
-            gpsStatusDisplay.text = (localGpsStatus as GpsStatus.GpsIsEnabled).message
-            gpsStatusDisplay.setTextColor(Color.BLUE)
-            observeAndDisplayPermissionStatus()
-        }
-
-        is GpsStatus.GpsIsDisabled -> {
-            gpsStatusDisplay.text = (localGpsStatus as GpsStatus.GpsIsDisabled).message
-            gpsStatusDisplay.setTextColor(Color.RED)
-            showGpsNotEnabledDialog()
-        }
-    }
-
-    private fun observeAndDisplayPermissionStatus(): Any =
-            PermissionStatusListener(this).reObserve(this, permissionObserver)
-
     override fun onResume() {
         super.onResume()
-        triggerSourceIsButton = false
         if (isServiceRunning) btnInitTracking.text = getString(R.string.button_text_end)
     }
 

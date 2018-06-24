@@ -24,8 +24,7 @@ class GpsStatusListener(private val context: Context) : LiveData<GpsStatus>() {
 
     private val gpsSwitchStateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) =
-                intent.action.matches(locationProviderRegex)
-                        .let { checkGpsAndReact() }
+                intent.action.matches(locationProviderRegex).let { checkGpsAndReact() }
     }
 
     override fun onInactive() = unregisterReceiver()
