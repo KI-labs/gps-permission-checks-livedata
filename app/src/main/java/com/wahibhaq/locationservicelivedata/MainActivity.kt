@@ -31,16 +31,14 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var localGpsStatus: GpsStatus
 
-    private lateinit var localPermissionStatus: PermissionStatus
-
     private val pairObserver = Observer<Pair<GpsStatus, PermissionStatus>> { pair ->
-                pair?.let {
-                    localGpsStatus = pair.first
-                    localPermissionStatus = pair.second
-                    handleGpsStatus(pair.first)
-                    handlePermissionStatus(pair.second)
-                }
-            }
+        pair?.let {
+            Timber.i("Pairobserver received with : " + pair.first + " and " + pair.second)
+            localGpsStatus = pair.first
+            handleGpsStatus(pair.first)
+            handlePermissionStatus(pair.second)
+        }
+    }
 
     private fun handleGpsStatus(status: GpsStatus) {
         when (status) {
@@ -102,10 +100,14 @@ class MainActivity : AppCompatActivity() {
         setupButtonAndUI()
         notificationsUtil.cancelAlertNotification() //to clear if there were any notifications
 
+        subscribeViewModel()
+    }
+
+    private fun subscribeViewModel() {
         viewModel = ViewModelProviders.of(this).get(MainViewModel::class.java)
 
-        //First checks GPS and if Enabled then checks for Runtime Permissions
-        viewModel.getStatusResponse().observe(this, pairObserver)
+        //Subscribe to updates from GPS and Runtime Permission in parallel
+        viewModel.getStatusResponse().observeForever(pairObserver)
     }
 
     private fun setupButtonAndUI() {
@@ -123,7 +125,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         permissionStatusDisplay.setOnClickListener {
-            viewModel.getPermissionCheck().observe (this, Observer { state ->
+            viewModel.getPermissionCheck().observe(this, Observer { state ->
                 handlePermissionStatus(state!!)
             })
         }
@@ -144,6 +146,18 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         if (isServiceRunning) btnInitTracking.text = getString(R.string.button_text_end)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        unSubscribeLiveData()
+    }
+
+    private fun unSubscribeLiveData() {
+        if (viewModel.getStatusResponse().hasObservers()) {
+            Timber.d("LiveData Observer getting removed in onDestroy()")
+            viewModel.getStatusResponse().removeObservers(this)
+        }
     }
 
     private fun showGpsNotEnabledDialog() = AlertDialog.Builder(this)
