@@ -4,6 +4,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.arch.lifecycle.LifecycleService
+import android.arch.lifecycle.LiveData
 import android.arch.lifecycle.Observer
 import android.content.Context
 import android.content.Intent
@@ -27,46 +28,68 @@ class LocationService : LifecycleService() {
 
     private lateinit var locationRequest: LocationRequest
 
+    private var gpsIsEnabled = false
+
+    private var permissionIsGranted = false
+
+    private lateinit var gpsAndPermissionStatusLiveData: LiveData<Pair<GpsStatus, PermissionStatus>>
+
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(locationResult: com.google.android.gms.location.LocationResult) {
             //Decide how to use location coordinates
+            Timber.d("New Coordinates Received: %s", locationResult.locations.toString())
         }
     }
 
-    private val gpsObserver = Observer<GpsStatus> { gpsState ->
-        when (gpsState) {
+    private val pairObserver = Observer<Pair<GpsStatus, PermissionStatus>> { pair ->
+        pair?.let {
+            Timber.i("Pairobserver received with %s and %s", pair.first, pair.second)
+            handleGpsStatus(pair.first)
+            handlePermissionStatus(pair.second)
+        }
+    }
+
+    private fun handleGpsStatus(status: GpsStatus) {
+        when (status) {
+            is GpsStatus.GpsIsEnabled -> {
+                Timber.w(status.message)
+                gpsIsEnabled = true
+                notificationsUtil.cancelAlertNotification()
+            }
+
             is GpsStatus.GpsIsDisabled -> {
-                Timber.w(gpsState.message)
+                Timber.w(status.message)
+                gpsIsEnabled = false
                 stopTracking()
                 showOnGoingNotification(R.string.notif_gps_waiting_body)
                 showGpsIsDisabledNotification()
             }
-
-            is GpsStatus.GpsIsEnabled -> {
-                Timber.i(gpsState.message)
-                notificationsUtil.cancelAlertNotification()
-                observeAndDisplayPermissionStatus()
-            }
         }
     }
 
-    private val permissionObserver = Observer<PermissionStatus> { permissionStatus ->
-        when (permissionStatus) {
+    private fun handlePermissionStatus(status: PermissionStatus) {
+        when (status) {
             is PermissionStatus.Granted -> {
-                Timber.i("Permission Granted in Service")
-                notificationsUtil.cancelAlertNotification()
+                Timber.i("Service: %s", status.message)
+                permissionIsGranted = true
                 startTracking()
             }
 
             is PermissionStatus.Denied -> {
-                Timber.w("Permission Denied in Service")
+                Timber.w("Service: %s", status.message)
+                permissionIsGranted = false
                 stopTracking()
                 showPermissionIsMissingNotification()
                 stopSelf()
             }
+
+            is PermissionStatus.Blocked -> {
+                Timber.w("Service: %s", status.message)
+                permissionIsGranted = false
+            }
         }
     }
-
+    
     override fun onCreate() {
         super.onCreate()
         notificationsUtil = NotificationsUtil(applicationContext,
@@ -78,20 +101,20 @@ class LocationService : LifecycleService() {
             interval = 5 * DateUtils.SECOND_IN_MILLIS
             priority = LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY
         }
+
+        gpsAndPermissionStatusLiveData = GpsStatusListener(applicationContext)
+                .zip(PermissionStatusListener(applicationContext, isForService = true))
+
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
         Timber.i("Tracking service getting started")
-        checkGpsAndThenPermission()
+        startObservingGpsAndPermissionStatus()
 
         //Mainly because we want Service to restart if user revokes permission and to notify him
         return Service.START_STICKY
     }
-
-    private fun observeAndDisplayPermissionStatus(): Any =
-            PermissionStatusListener(applicationContext, isForService = true)
-                    .reObserve(this, permissionObserver)
 
     private fun showPermissionIsMissingNotification() {
         // Clicking notification will taker user to enable location setting screen
@@ -106,12 +129,14 @@ class LocationService : LifecycleService() {
                 pendingIntent)
     }
 
-    private fun checkGpsAndThenPermission() = GpsStatusListener(this)
-            .reObserve(this, gpsObserver)
+    private fun startObservingGpsAndPermissionStatus() = gpsAndPermissionStatusLiveData
+            .reObserve(this, pairObserver)
 
     private fun startTracking() {
-        showOnGoingNotification(R.string.notif_in_progress)
-        registerLocationUpdates() //We only start listening when Gps and Location Permission is enabled
+        if (permissionIsGranted && gpsIsEnabled) {
+            showOnGoingNotification(R.string.notif_in_progress)
+            registerLocationUpdates() //We only start listening when Gps and Location Permission is enabled
+        }
     }
 
     private fun stopTracking() {
@@ -150,7 +175,15 @@ class LocationService : LifecycleService() {
     override fun onDestroy() {
         Timber.i("Service is destroyed now")
         stopTracking()
+        unsubscribeToLiveData()
         super.onDestroy()
+    }
+
+    private fun unsubscribeToLiveData() {
+        if (gpsAndPermissionStatusLiveData.hasObservers()) {
+            Timber.i("Removing LiveData Observer and LifeCycleOwner")
+            gpsAndPermissionStatusLiveData.removeObserver(pairObserver)
+        }
     }
 
     private fun unregisterLocationUpdates() {

@@ -15,8 +15,6 @@ import com.wahibhaq.locationservicelivedata.LocationService.Companion.isTracking
 import kotlinx.android.synthetic.main.activity_main.*
 import timber.log.Timber
 
-
-//TODO Inject locationServiceListener and use that to start and stop
 class MainActivity : AppCompatActivity() {
 
     private lateinit var locationServiceListener: LocationServiceListener
@@ -33,10 +31,11 @@ class MainActivity : AppCompatActivity() {
 
     private val pairObserver = Observer<Pair<GpsStatus, PermissionStatus>> { pair ->
         pair?.let {
-            Timber.i("Pairobserver received with : " + pair.first + " and " + pair.second)
+            Timber.i("Pairobserver received with %s and %s", pair.first, pair.second)
             localGpsStatus = pair.first
             handleGpsStatus(pair.first)
             handlePermissionStatus(pair.second)
+            handleUIEnableStatus()
         }
     }
 
@@ -61,29 +60,25 @@ class MainActivity : AppCompatActivity() {
         when (status) {
             is PermissionStatus.Granted -> {
                 shouldEnablePermissionClick = false
-                Timber.i("Permission granted in Activity")
+                Timber.i("Activity: %s", status.message)
                 permissionStatusDisplay.text = status.message
                 permissionStatusDisplay.setTextColor(Color.BLUE)
             }
 
             is PermissionStatus.Denied -> {
                 shouldEnablePermissionClick = true
-                Timber.i("Permission denied in Activity")
+                Timber.w("Activity: %s", status.message)
                 permissionStatusDisplay.text = status.message
                 permissionStatusDisplay.setTextColor(Color.RED)
             }
 
             is PermissionStatus.Blocked -> {
                 shouldEnablePermissionClick = true
-                Timber.i("Permission blocked in Activity")
+                Timber.w("Activity: %s", status.message)
                 permissionStatusDisplay.text = status.message
                 permissionStatusDisplay.setTextColor(Color.RED)
             }
         }
-
-        btnInitTracking.isEnabled = shouldEnableGpsClick.not() && shouldEnablePermissionClick.not()
-        gpsStatusDisplay.isEnabled = shouldEnableGpsClick
-        permissionStatusDisplay.isEnabled = shouldEnablePermissionClick
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -100,14 +95,20 @@ class MainActivity : AppCompatActivity() {
         setupButtonAndUI()
         notificationsUtil.cancelAlertNotification() //to clear if there were any notifications
 
-        subscribeViewModel()
+        subscribeToLiveData()
     }
 
-    private fun subscribeViewModel() {
+    private fun subscribeToLiveData() {
         viewModel = ViewModelProviders.of(this).get(MainViewModel::class.java)
-
-        //Subscribe to updates from GPS and Runtime Permission in parallel
+        //Subscribe to updates until activity is not destroyed or Tracking is not started
         viewModel.getStatusResponse().observeForever(pairObserver)
+    }
+
+    private fun unsubscribeToLiveData() {
+        if (viewModel.getStatusResponse().hasObservers()) {
+            Timber.i("Removing LiveData Observer and LifeCycleOwner")
+            viewModel.getStatusResponse().removeObserver(pairObserver)
+        }
     }
 
     private fun setupButtonAndUI() {
@@ -131,6 +132,17 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun handleUIEnableStatus() {
+        gpsStatusDisplay.isEnabled = shouldEnableGpsClick
+        permissionStatusDisplay.isEnabled = shouldEnablePermissionClick
+
+        if (btnInitTracking.text == getString(R.string.button_text_end))
+            btnInitTracking.isEnabled = true //Button is always clickable to allow user to end tracking
+        else
+            btnInitTracking.isEnabled = shouldEnableGpsClick.not()
+                    && shouldEnablePermissionClick.not()
+    }
+
     private fun startTracking() {
         Timber.i("Tracking start triggered from Button on Activity")
         btnInitTracking.text = getString(R.string.button_text_end)
@@ -139,25 +151,26 @@ class MainActivity : AppCompatActivity() {
 
     private fun stopTracking() {
         Timber.i("Tracking stop triggered from Activity")
-        btnInitTracking.text = getString(R.string.button_text_start)
         locationServiceListener.unsubscribeFromLocationUpdates()
+        notificationsUtil.cancelAlertNotification()
+        btnInitTracking.text = getString(R.string.button_text_start)
+
+        /*To make button disable again if needed*/
+        handleUIEnableStatus()
     }
 
     override fun onResume() {
         super.onResume()
         if (isServiceRunning) btnInitTracking.text = getString(R.string.button_text_end)
+
+        /*Seems like observer doesn't get triggered when you come back from Permission Screen
+        after enabling the status*/
+        handleUIEnableStatus()
     }
 
     override fun onDestroy() {
+        unsubscribeToLiveData()
         super.onDestroy()
-        unSubscribeLiveData()
-    }
-
-    private fun unSubscribeLiveData() {
-        if (viewModel.getStatusResponse().hasObservers()) {
-            Timber.d("LiveData Observer getting removed in onDestroy()")
-            viewModel.getStatusResponse().removeObservers(this)
-        }
     }
 
     private fun showGpsNotEnabledDialog() = AlertDialog.Builder(this)
