@@ -89,7 +89,7 @@ class LocationService : LifecycleService() {
             }
         }
     }
-    
+
     override fun onCreate() {
         super.onCreate()
         notificationsUtil = NotificationsUtil(applicationContext,
@@ -130,7 +130,7 @@ class LocationService : LifecycleService() {
     }
 
     private fun startObservingGpsAndPermissionStatus() = gpsAndPermissionStatusLiveData
-            .reObserve(this, pairObserver)
+            .observe(this, pairObserver)
 
     private fun startTracking() {
         if (permissionIsGranted && gpsIsEnabled) {

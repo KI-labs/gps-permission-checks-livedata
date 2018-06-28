@@ -1,12 +1,8 @@
 package com.wahibhaq.locationservicelivedata
 
-import android.arch.lifecycle.*
-
-//https://medium.com/@BladeCoder/architecture-components-pitfalls-part-1-9300dd969808
-fun <T> LiveData<T>.reObserve(owner: LifecycleOwner, observer: Observer<T>) {
-    removeObserver(observer)
-    observe(owner, observer)
-}
+import android.arch.lifecycle.LiveData
+import android.arch.lifecycle.MediatorLiveData
+import android.arch.lifecycle.MutableLiveData
 
 /**
  * This function creates a [LiveData] of a [Pair] of the two types provided. The resulting LiveData is updated whenever either input LiveData updates and both LiveData have updated at least once before.
