@@ -12,12 +12,16 @@ import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
 import com.wahibhaq.locationservicelivedata.LocationService.Companion.isServiceRunning
 import com.wahibhaq.locationservicelivedata.LocationService.Companion.isTrackingRunning
+import dagger.android.AndroidInjection
+import dagger.android.AndroidInjector
 import kotlinx.android.synthetic.main.activity_main.*
 import timber.log.Timber
+import javax.inject.Inject
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var locationServiceListener: LocationServiceListener
+    @Inject
+    lateinit var locationServiceListener: LocationServiceListener
 
     private lateinit var notificationsUtil: NotificationsUtil
 
@@ -85,9 +89,9 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        locationServiceListener = LocationServiceListener(
-                applicationContext,
-                Intent(applicationContext, LocationService::class.java))
+        AndroidInjection.inject(this)
+
+        //locationServiceListener = LocationServiceListener(applicationContext, Intent(applicationContext, LocationService::class.java))
 
         notificationsUtil = NotificationsUtil(applicationContext,
                 applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
