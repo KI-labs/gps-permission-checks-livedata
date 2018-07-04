@@ -3,8 +3,13 @@
     <string name="button_text_start">Start Tracking</string>
     <string name="button_text_end">End Tracking</string>
     <string name="action_settings">Settings</string>
-    <string name="permission_status_undefined">Location permission status is undefined</string>
-    <string name="gps_status_undefined">GPS Status is Undefined</string>
+    <string name="permission_status_granted">Location permission is already granted</string>
+    <string name="permission_status_denied">Waiting for location permission to be granted</string>
+    <string name="permission_status_blocked">Waiting for location permission to be unblocked</string>
+    <string name="permission_status_denied_show_notif">"Location permission not granted. " +
+                    "Show a notification to alert user"</string>
+    <string name="gps_status_enabled">"GPS is Enabled"</string>
+    <string name="gps_status_disabled">"GPS is Disabled"</string>
     <string name="notif_in_progress">In Progress…</string>
     <string name="gps_required_title">GPS Required</string>
     <string name="permission_required_title">Location Permission Required</string>

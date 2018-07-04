@@ -25,16 +25,16 @@ class PermissionStatusListener(private val context: Context,
 
     private val permissionHandler = object : PermissionHandler() {
         override fun onGranted() =
-                postValue(PermissionStatus.Granted("Location permission is already granted"))
+                postValue(PermissionStatus.Granted(R.string.permission_status_granted))
 
         override fun onDenied(context: Context?, deniedPermissions: ArrayList<String>?) =
-                postValue(PermissionStatus.Denied("Waiting for location permission to be granted"))
+                postValue(PermissionStatus.Denied(R.string.permission_status_denied))
 
         override fun onJustBlocked(
                 context: Context?,
                 justBlockedList: ArrayList<String>?,
                 deniedPermissions: ArrayList<String>?
-        ) = postValue(PermissionStatus.Blocked("Waiting for location permission to be unblocked"))
+        ) = postValue(PermissionStatus.Blocked(R.string.permission_status_blocked))
     }
 
     /**
@@ -53,15 +53,14 @@ class PermissionStatusListener(private val context: Context,
         val isPermissionGranted = ActivityCompat.checkSelfPermission(context,
                 Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         if (isPermissionGranted)
-            postValue(PermissionStatus.Granted("Location permission is already granted"))
+            postValue(PermissionStatus.Granted(R.string.permission_status_granted))
         else
-            postValue(PermissionStatus.Denied("Location permission not granted. " +
-                    "Show a notification to alert user"))
+            postValue(PermissionStatus.Denied(R.string.permission_status_denied_show_notif))
     }
 }
 
 sealed class PermissionStatus {
-    data class Granted(val message: String) : PermissionStatus()
-    data class Denied(val message: String) : PermissionStatus()
-    data class Blocked(val message: String) : PermissionStatus()
+    data class Granted(val message: Int) : PermissionStatus()
+    data class Denied(val message: Int) : PermissionStatus()
+    data class Blocked(val message: Int) : PermissionStatus()
 }

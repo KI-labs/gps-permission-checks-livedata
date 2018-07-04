@@ -52,13 +52,13 @@ class LocationService : LifecycleService() {
     private fun handleGpsStatus(status: GpsStatus) {
         when (status) {
             is GpsStatus.GpsIsEnabled -> {
-                Timber.w(status.message)
+                Timber.w("%s", status.message)
                 gpsIsEnabled = true
                 notificationsUtil.cancelAlertNotification()
             }
 
             is GpsStatus.GpsIsDisabled -> {
-                Timber.w(status.message)
+                Timber.w("%s", status.message)
                 gpsIsEnabled = false
                 stopTracking()
                 showOnGoingNotification(R.string.notif_gps_waiting_body)
