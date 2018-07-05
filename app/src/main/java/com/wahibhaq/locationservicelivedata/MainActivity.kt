@@ -100,11 +100,11 @@ class MainActivity : AppCompatActivity() {
         notificationsUtil = NotificationsUtil(this,
                 applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
         notificationsUtil.cancelAlertNotification() //to clear if there were any notifications
-        subscribeTGpsListener()
+        subscribeToGpsListener()
         setupUI()
     }
 
-    private fun subscribeTGpsListener() =
+    private fun subscribeToGpsListener() =
     //Subscribe to gps status updates until activity is not destroyed
             viewModel.gpsStatusLiveData.observeForever(gpsObserver)
 
