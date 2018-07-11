@@ -9,16 +9,26 @@
         android:id="@+id/btnInitTracking"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
         android:layout_marginTop="50dp"
+        android:layout_centerHorizontal="true"
         android:text="@string/button_text_start"
+        android:enabled="false"/>
+
+    <Button
+        android:id="@+id/btnInitSimulatingDetection"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/btnInitTracking"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="20dp"
+        android:text="Simulate Detection and Alert Notification"
         android:enabled="false"/>
 
     <TextView
         android:id="@+id/gpsStatusDisplay"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@id/btnInitTracking"
+        android:layout_below="@id/btnInitSimulatingDetection"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="20dp"
         android:gravity="center_horizontal"

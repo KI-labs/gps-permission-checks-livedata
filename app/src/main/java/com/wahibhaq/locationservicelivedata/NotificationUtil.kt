@@ -7,11 +7,10 @@ import android.app.Service
 import android.content.Context
 import android.os.Build
 import android.support.v4.app.NotificationCompat
-import android.support.v4.app.NotificationCompat.DEFAULT_SOUND
-import android.support.v4.app.NotificationCompat.DEFAULT_VIBRATE
 
-const val ONGOING_NOTIFICATION_ID = 100
-const val ALERT_NOTIFICATION_ID = 200
+const val ONGOING_NOTIFICATION_ID = 1
+const val ALERT_PERMISSION_NOTIFICATION_ID = 2
+const val ALERT_GPS_NOTIFICATION_ID = 3
 const val NOTIFICATION_CHANNEL_NAME = "All"
 const val NOTIFICATION_CHANNEL_ONGOING_ID = "com.wahibhaq.locationservicelivedata.ongoing"
 const val NOTIFICATION_CHANNEL_ALERTS_ID = "com.wahibhaq.locationservicelivedata.alerts"
@@ -21,19 +20,21 @@ class NotificationsUtil(
         private val notificationManager: NotificationManager
 ) {
 
+    private val vibrationFlow = longArrayOf(0, 400, 200, 400)
+
     fun createOngoingNotification(
             service: Service,
-            title: Int,
-            text: Int,
+            title: String,
+            text: String,
             pendingIntent: PendingIntent?
     ) {
         createOngoingNotificationChannel()
         service.startForeground(
                 ONGOING_NOTIFICATION_ID,
                 NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ONGOING_ID)
-                        .setContentTitle(context.getString(title))
+                        .setContentTitle(title)
                         .setOngoing(true)
-                        .setContentText(context.getString(text))
+                        .setContentText(text)
                         .setSmallIcon(R.mipmap.ic_launcher_round)
                         .setContentIntent(pendingIntent)
                         .setPriority(NotificationCompat.PRIORITY_DEFAULT)
@@ -42,23 +43,30 @@ class NotificationsUtil(
         )
     }
 
-    fun createAlertNotification(
-            title: Int, text: Int,
-            pendingIntent: PendingIntent? = null
-    ) {
-        createAlertsNotificationChannel()
-        val notification = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ALERTS_ID)
-                .setContentTitle(context.getString(title))
-                .setOngoing(false)
+    fun createAlertNotification(id: Int, title: String, text: String,
+                                pendingIntent: PendingIntent? = null) {
+        val notificationBuilder = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ALERTS_ID)
+                .setContentTitle(title)
                 .setAutoCancel(true)
-                .setContentText(context.getString(text))
+                .setContentText(text)
                 .setSmallIcon(R.mipmap.ic_launcher_round)
                 .setContentIntent(pendingIntent)
-                .setPriority(NotificationCompat.PRIORITY_MAX)
-                .setDefaults(DEFAULT_SOUND or DEFAULT_VIBRATE)
-                .build()
+                .setOnlyAlertOnce(true)
 
-        notificationManager.notify(ALERT_NOTIFICATION_ID, notification)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel(
+                    NOTIFICATION_CHANNEL_ALERTS_ID,
+                    NOTIFICATION_CHANNEL_NAME,
+                    NotificationManager.IMPORTANCE_HIGH)
+                    .apply { vibrationPattern = vibrationFlow }
+                    .let { notificationManager.createNotificationChannel(it) }
+        } else {
+            notificationBuilder
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setVibrate(vibrationFlow)
+        }
+
+        notificationManager.notify(id, notificationBuilder.build())
     }
 
     private fun createOngoingNotificationChannel() {
@@ -73,19 +81,8 @@ class NotificationsUtil(
         }
     }
 
-    private fun createAlertsNotificationChannel() {
-        //TODO What about else?
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel(
-                    NOTIFICATION_CHANNEL_ALERTS_ID, NOTIFICATION_CHANNEL_NAME,
-                    NotificationManager.IMPORTANCE_HIGH)
-                    .let { channel ->
-                        notificationManager.createNotificationChannel(channel)
-                    }
-        }
-    }
-
     fun cancelAlertNotification() {
-        notificationManager.cancel(ALERT_NOTIFICATION_ID)
+        notificationManager.cancel(ALERT_GPS_NOTIFICATION_ID)
+        notificationManager.cancel(ALERT_PERMISSION_NOTIFICATION_ID)
     }
 }

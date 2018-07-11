@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.os.Handler
 import android.provider.Settings
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
@@ -140,6 +141,14 @@ class MainActivity : AppCompatActivity() {
             else stopTracking() //To toggle state
         }
 
+        btnInitSimulatingDetection.setOnClickListener {
+            Handler().apply {
+                postDelayed({
+                    locationServiceListener.subscribeToLocationUpdates()
+                }, 3000)
+            }
+        }
+
         gpsStatusDisplay.setOnClickListener {
             handleGpsCheck()
         }
@@ -158,6 +167,8 @@ class MainActivity : AppCompatActivity() {
         else
             btnInitTracking.isEnabled = shouldEnableGpsClick.not()
                     && shouldEnablePermissionClick.not()
+
+        btnInitSimulatingDetection.isEnabled = btnInitTracking.isEnabled.not()
     }
 
     private fun startTracking() {
