@@ -141,21 +141,18 @@ class MainActivity : AppCompatActivity() {
             else stopTracking() //To toggle state
         }
 
+        /**
+         * This is to simulate how user is alerted via notifications when drive start is detected
+         * in background by [LocationService]
+         */
         btnInitSimulatingDetection.setOnClickListener {
             Handler().apply {
-                postDelayed({
-                    locationServiceListener.subscribeToLocationUpdates()
-                }, 3000)
+                postDelayed({ locationServiceListener.subscribeToLocationUpdates() }, 3000)
             }
         }
 
-        gpsStatusDisplay.setOnClickListener {
-            handleGpsCheck()
-        }
-
-        permissionStatusDisplay.setOnClickListener {
-            handlePermissionAndGpsCheck()
-        }
+        gpsStatusDisplay.setOnClickListener { handleGpsCheck() }
+        permissionStatusDisplay.setOnClickListener { handlePermissionAndGpsCheck() }
     }
 
     private fun updateButtonEnableStatus() {

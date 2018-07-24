@@ -18,4 +18,5 @@
     <string name="permission_required_body">Allow otherwise location tracking won\'t work</string>
     <string name="permission_blocked_body">Location Permission has been set not to ask again! Please provide it from Settings.</string>
     <string name="notif_gps_waiting_body">Waiting for GPS to be enabled…</string>
+    <string name="simulate_notifications">Simulate Notification(s)</string>
 </resources>
