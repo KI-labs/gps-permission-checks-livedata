@@ -14,7 +14,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:textColor="@color/colorPrimary"
+        android:textColor="@android:color/holo_red_light"
         android:textSize="16sp"
         android:textStyle="bold"
         android:text="@string/gps_status_disabled"/>
@@ -29,7 +29,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/gpsStatusDisplay"
-        android:textColor="@color/colorPrimary"
+        android:textColor="@android:color/holo_red_light"
         android:textSize="16sp"
         android:textStyle="bold"
         android:text="@string/permission_status_denied"/>
