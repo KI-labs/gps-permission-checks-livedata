@@ -18,7 +18,7 @@ import timber.log.Timber
 
 /**
  * Ideally this Service should be started/stopped based on [ActivityTransitionEvent] received in
- * Custom Broadcast Receiver.
+ * Custom Broadcast Receiver in response to any activity which is specified like [DetectedActivity.RUNNING]
  */
 class LocationService : LifecycleService() {
 
@@ -195,13 +195,14 @@ class LocationService : LifecycleService() {
     }
 
     /**
-     * This is to handle case when GPS or Permission wasn't enabled but start drive was detected.
+     * This is to handle case when GPS or Permission wasn't enabled but start of activity via
+     * [ActivityTransition.ACTIVITY_TRANSITION_ENTER] got detected.
      * Once Notifications are shown, there's no need to continue tracking because app won't be able
      * to receive location coordinates.
      */
     private fun stopServiceIfNeeded() {
         if (eitherPermissionOrGpsIsDisabled()) {
-            //Maybe you would like to store current drive before killing the service
+            //Maybe you would like to store last coordinate before killing the service
             stopSelf()
         }
     }

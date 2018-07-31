@@ -142,7 +142,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         /**
-         * This is to simulate how user is alerted via notifications when drive start is detected
+         * This is to simulate how user is alerted via notifications when activity start is detected
          * in background by [LocationService]
          */
         btnInitSimulatingDetection.setOnClickListener {
