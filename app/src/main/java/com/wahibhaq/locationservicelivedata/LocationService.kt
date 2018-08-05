@@ -94,15 +94,16 @@ class LocationService : LifecycleService() {
             priority = LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY
         }
 
-        gpsAndPermissionStatusLiveData = PermissionStatusListener(applicationContext)
-                .combineLatestWith(GpsStatusListener(applicationContext))
+        gpsAndPermissionStatusLiveData = with(application) {
+            PermissionStatusListener(this).combineLatestWith(GpsStatusListener(this))
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
         Timber.i("Tracking service getting started")
         showOnGoingNotification()
-        startObservingGpsAndPermissionStatus()
+        gpsAndPermissionStatusLiveData.observe(this, pairObserver)
         //Mainly because we want Service to restart if user revokes permission and to notify him
         return Service.START_STICKY
     }
