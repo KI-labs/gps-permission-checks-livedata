@@ -12,14 +12,12 @@ import android.support.v4.app.ActivityCompat
  */
 class PermissionStatusListener(private val context: Context) : LiveData<PermissionStatus>() {
 
-    override fun onActive() {
-        super.onActive()
-        handlePermissionCheck()
-    }
+    override fun onActive() = handlePermissionCheck()
 
     private fun handlePermissionCheck() {
         val isPermissionGranted = ActivityCompat.checkSelfPermission(context,
                 Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
         if (isPermissionGranted)
             postValue(PermissionStatus.Granted(R.string.permission_status_granted))
         else

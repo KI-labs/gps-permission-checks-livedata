@@ -15,21 +15,26 @@ import timber.log.Timber
  * responds with appropriate state specified in {@link GpsStatus}
  */
 class GpsStatusListener(private val context: Context) : LiveData<GpsStatus>() {
-    private val locationProviderRegex = "android.location.PROVIDERS_CHANGED".toRegex()
+
+    private val gpsSwitchStateReceiver: BroadcastReceiver
 
     init {
-        checkGpsAndReact() //Need to explicitly call for the first time check
-    }
+        val locationProviderRegex = "android.location.PROVIDERS_CHANGED".toRegex()
 
-    private val gpsSwitchStateReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) =
-                intent.action.matches(locationProviderRegex).let { checkGpsAndReact() }
+        gpsSwitchStateReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                if (intent.action.matches(locationProviderRegex)) {
+                    checkGpsAndReact()
+                }
+            }
+        }
     }
 
     override fun onInactive() = unregisterReceiver()
 
     override fun onActive() {
         registerReceiver()
+        checkGpsAndReact()
     }
 
     private fun checkGpsAndReact() = if (isLocationEnabled()) {

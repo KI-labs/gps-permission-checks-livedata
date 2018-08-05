@@ -75,14 +75,19 @@ class MainActivity : AppCompatActivity() {
         when (status) {
             is GpsStatus.GpsIsEnabled -> {
                 shouldEnableGpsClick = false
-                gpsStatusDisplay.text = getString(status.message)
-                gpsStatusDisplay.setTextColor(Color.BLUE)
+                gpsStatusDisplay.apply {
+                    text = getString(status.message)
+                    setTextColor(Color.BLUE)
+                }
+                hideGpsNotEnabledDialog()
             }
 
             is GpsStatus.GpsIsDisabled -> {
                 shouldEnableGpsClick = true
-                gpsStatusDisplay.text = getString(status.message)
-                gpsStatusDisplay.setTextColor(Color.RED)
+                gpsStatusDisplay.apply {
+                    text = getString(status.message)
+                    setTextColor(Color.RED)
+                }
                 showGpsNotEnabledDialog()
             }
         }
@@ -105,17 +110,8 @@ class MainActivity : AppCompatActivity() {
         setupUI()
     }
 
-    private fun subscribeToGpsListener() =
-    //Subscribe to gps status updates until activity is not destroyed
-            viewModel.gpsStatusLiveData.observeForever(gpsObserver)
-
-
-    private fun unsubscribeToGpsListener() {
-        if (viewModel.gpsStatusLiveData.hasObservers()) {
-            Timber.i("Removing LiveData Observer and LifeCycleOwner")
-            viewModel.gpsStatusLiveData.removeObserver(gpsObserver)
-        }
-    }
+    private fun subscribeToGpsListener() = viewModel.gpsStatusLiveData
+            .observe(this, gpsObserver)
 
     override fun onStart() {
         super.onStart()
@@ -187,11 +183,6 @@ class MainActivity : AppCompatActivity() {
         if (isServiceRunning) btnInitTracking.text = getString(R.string.button_text_end)
     }
 
-    override fun onDestroy() {
-        unsubscribeToGpsListener()
-        super.onDestroy()
-    }
-
     private fun showGpsNotEnabledDialog() {
         if (alertDialog?.isShowing == true) {
             return // null or already being shown
@@ -209,5 +200,9 @@ class MainActivity : AppCompatActivity() {
                 }
                 .setNegativeButton(android.R.string.cancel, null)
                 .show()
+    }
+
+    private fun hideGpsNotEnabledDialog() {
+        if (alertDialog?.isShowing == true) alertDialog?.dismiss()
     }
 }
