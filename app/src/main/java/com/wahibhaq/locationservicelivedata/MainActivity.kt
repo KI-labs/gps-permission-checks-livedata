@@ -7,11 +7,13 @@ import android.arch.lifecycle.ViewModelProviders
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.provider.Settings
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
+import android.view.View
 import com.nabinbhandari.android.permissions.PermissionHandler
 import com.nabinbhandari.android.permissions.Permissions
 import com.wahibhaq.locationservicelivedata.LocationService.Companion.isServiceRunning
@@ -148,7 +150,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         gpsStatusDisplay.setOnClickListener { handleGpsCheck() }
-        permissionStatusDisplay.setOnClickListener { handlePermissionAndGpsCheck() }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            permissionStatusDisplay.visibility = View.VISIBLE
+            permissionStatusDisplay.setOnClickListener { handlePermissionAndGpsCheck() }
+        }
     }
 
     private fun updateButtonEnableStatus() {
