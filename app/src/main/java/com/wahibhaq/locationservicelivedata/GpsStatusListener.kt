@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.location.LocationManager
+import android.os.Build
 import android.provider.Settings
 import android.provider.Settings.Secure.*
 import timber.log.Timber
@@ -28,16 +29,21 @@ class GpsStatusListener(private val context: Context) : LiveData<GpsStatus>() {
     }
 
     private fun checkGpsAndReact() = if (isLocationEnabled()) {
-        postValue(GpsStatus.GpsIsEnabled(R.string.gps_status_enabled))
+        postValue(GpsStatus.Enabled(context.getString(R.string.gps_status_enabled)))
     } else {
-        postValue(GpsStatus.GpsIsDisabled(R.string.gps_status_disabled))
+        postValue(GpsStatus.Disabled(context.getString(R.string.gps_status_disabled)))
     }
 
-    private fun isLocationEnabled() = try {
-        getInt(context.contentResolver, LOCATION_MODE) != LOCATION_MODE_OFF
-    } catch (e: Settings.SettingNotFoundException) {
-        Timber.e(e)
-        false
+    private fun isLocationEnabled() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        context.getSystemService(LocationManager::class.java)
+                .isProviderEnabled(LocationManager.GPS_PROVIDER)
+    } else {
+        try {
+            getInt(context.contentResolver, LOCATION_MODE) != LOCATION_MODE_OFF
+        } catch (e: Settings.SettingNotFoundException) {
+            Timber.e(e)
+            false
+        }
     }
 
     /**
@@ -50,6 +56,6 @@ class GpsStatusListener(private val context: Context) : LiveData<GpsStatus>() {
 }
 
 sealed class GpsStatus {
-    data class GpsIsDisabled(val message: Int) : GpsStatus()
-    data class GpsIsEnabled(val message: Int) : GpsStatus()
+    data class Disabled(val message: String = "") : GpsStatus()
+    data class Enabled(val message: String = "") : GpsStatus()
 }

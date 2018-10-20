@@ -68,13 +68,13 @@ class LocationService : LifecycleService() {
 
     private fun handleGpsStatus(status: GpsStatus) {
         when (status) {
-            is GpsStatus.GpsIsEnabled -> {
+            is GpsStatus.Enabled -> {
                 Timber.i("Service - GPS: %s", status.message)
                 gpsIsEnabled = true
                 registerForLocationTracking()
             }
 
-            is GpsStatus.GpsIsDisabled -> {
+            is GpsStatus.Disabled -> {
                 Timber.w("Service - GPS: %s", status.message)
                 gpsIsEnabled = false
                 showGpsIsDisabledNotification()

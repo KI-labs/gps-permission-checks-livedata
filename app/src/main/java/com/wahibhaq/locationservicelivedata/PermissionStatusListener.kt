@@ -19,13 +19,14 @@ class PermissionStatusListener(private val context: Context) : LiveData<Permissi
                 Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
         if (isPermissionGranted)
-            postValue(PermissionStatus.Granted(R.string.permission_status_granted))
+            postValue(PermissionStatus.Granted(context.getString(R.string.permission_status_granted)))
         else
-            postValue(PermissionStatus.Denied(R.string.permission_status_denied_show_notif))
+            postValue(PermissionStatus.Denied(context.getString(R.string.permission_status_denied_show_notif)))
     }
 }
 
 sealed class PermissionStatus {
-    data class Granted(val message: Int) : PermissionStatus()
-    data class Denied(val message: Int) : PermissionStatus()
+    data class Granted(val message: String = "") : PermissionStatus()
+    data class Denied(val message: String = "") : PermissionStatus()
+    data class Blocked(val message: String = "") : PermissionStatus()
 }

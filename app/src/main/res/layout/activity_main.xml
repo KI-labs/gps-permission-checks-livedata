@@ -33,7 +33,7 @@
         android:textSize="16sp"
         android:textStyle="bold"
         android:text="@string/permission_status_denied"
-        android:visibility="invisible"/>
+        android:visibility="gone"/>
 
     <Button
         android:id="@+id/btnInitTracking"

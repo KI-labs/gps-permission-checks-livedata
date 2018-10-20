@@ -37,26 +37,29 @@ class MainActivity : AppCompatActivity() {
     private var shouldEnablePermissionClick = false
 
     private val gpsObserver = Observer<GpsStatus> { status ->
+        status?.let { handleGpsCheckUI(status) }
+    }
+
+    private val permissionObserver = Observer<PermissionStatus> { status ->
         status?.let {
-            handleGpsCheck()
+            handlePermissionCheckUI(status)
+            when (it) {
+                is PermissionStatus.Granted -> handleGpsCheckDialog()
+                is PermissionStatus.Denied -> showLocationPermissionNeededDialog()
+            }
         }
     }
 
     private val permissionHandler = object : PermissionHandler() {
         override fun onGranted() {
-            shouldEnablePermissionClick = false
             Timber.i("Activity: %s", R.string.permission_status_granted)
-            permissionStatusDisplay.text = getString(R.string.permission_status_granted)
-            permissionStatusDisplay.setTextColor(Color.BLUE)
-            handleGpsCheck()
+            handleGpsCheckDialog()
+            handlePermissionCheckUI(PermissionStatus.Granted())
         }
 
         override fun onDenied(context: Context?, deniedPermissions: ArrayList<String>?) {
-            shouldEnablePermissionClick = true
             Timber.w("Activity: %s", R.string.permission_status_denied)
-            permissionStatusDisplay.text = getString(R.string.permission_status_denied)
-            permissionStatusDisplay.setTextColor(Color.RED)
-            updateButtonEnableStatus()
+            handlePermissionCheckUI(PermissionStatus.Denied())
         }
 
         override fun onJustBlocked(
@@ -64,33 +67,69 @@ class MainActivity : AppCompatActivity() {
                 justBlockedList: ArrayList<String>?,
                 deniedPermissions: ArrayList<String>?
         ) {
-            shouldEnablePermissionClick = true
             Timber.w("Activity: %s", R.string.permission_status_blocked)
-            permissionStatusDisplay.text = getString(R.string.permission_status_blocked)
-            permissionStatusDisplay.setTextColor(Color.RED)
-            updateButtonEnableStatus()
+            handlePermissionCheckUI(PermissionStatus.Blocked())
         }
     }
 
-    private fun handleGpsCheck() {
-        val status = viewModel.gpsStatusLiveData.value //using current value of livedata
+    /**
+     *  Using current value of [GpsStatusListener] livedata as default
+     */
+    private fun handleGpsCheckDialog(status: GpsStatus = viewModel.gpsStatusLiveData.value as GpsStatus) {
         when (status) {
-            is GpsStatus.GpsIsEnabled -> {
+            is GpsStatus.Enabled -> hideGpsNotEnabledDialog()
+            is GpsStatus.Disabled -> showGpsNotEnabledDialog()
+        }
+    }
+
+    private fun handleGpsCheckUI(status: GpsStatus) {
+        when (status) {
+            is GpsStatus.Enabled -> {
                 shouldEnableGpsClick = false
                 gpsStatusDisplay.apply {
-                    text = getString(status.message)
+                    text = status.message
                     setTextColor(Color.BLUE)
                 }
-                hideGpsNotEnabledDialog()
+
+                handleGpsCheckDialog(GpsStatus.Enabled())
             }
 
-            is GpsStatus.GpsIsDisabled -> {
+            is GpsStatus.Disabled -> {
                 shouldEnableGpsClick = true
                 gpsStatusDisplay.apply {
-                    text = getString(status.message)
+                    text = status.message
                     setTextColor(Color.RED)
                 }
-                showGpsNotEnabledDialog()
+            }
+        }
+
+        updateButtonEnableStatus()
+    }
+
+    private fun handlePermissionCheckUI(status: PermissionStatus) {
+        when (status) {
+            is PermissionStatus.Granted -> {
+                shouldEnablePermissionClick = false
+                permissionStatusDisplay.apply {
+                    text = getString(R.string.permission_status_granted)
+                    setTextColor(Color.BLUE)
+                }
+            }
+
+            is PermissionStatus.Denied -> {
+                shouldEnablePermissionClick = true
+                permissionStatusDisplay.apply {
+                    text = getString(R.string.permission_status_denied)
+                    setTextColor(Color.RED)
+                }
+            }
+
+            is PermissionStatus.Blocked -> {
+                shouldEnablePermissionClick = true
+                permissionStatusDisplay.apply {
+                    text = getString(R.string.permission_status_blocked)
+                    setTextColor(Color.RED)
+                }
             }
         }
 
@@ -107,18 +146,17 @@ class MainActivity : AppCompatActivity() {
 
         notificationsUtil = NotificationsUtil(this,
                 applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
-        notificationsUtil.cancelAlertNotification() //to clear if there were any notifications
-        subscribeToGpsListener()
+
         setupUI()
+        subscribeToGpsListener()
+        subscribeToPermissionListener()
     }
 
     private fun subscribeToGpsListener() = viewModel.gpsStatusLiveData
             .observe(this, gpsObserver)
 
-    override fun onStart() {
-        super.onStart()
-        handlePermissionAndGpsCheck()
-    }
+    private fun subscribeToPermissionListener() =
+            viewModel.permissionStatusLiveData.observe(this, permissionObserver)
 
     /**
      * Using 3rd party lib *Permissions* for showing dialogs and handling response
@@ -149,7 +187,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        gpsStatusDisplay.setOnClickListener { handleGpsCheck() }
+        gpsStatusDisplay.setOnClickListener { handleGpsCheckDialog() }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             permissionStatusDisplay.visibility = View.VISIBLE
@@ -210,5 +248,27 @@ class MainActivity : AppCompatActivity() {
 
     private fun hideGpsNotEnabledDialog() {
         if (alertDialog?.isShowing == true) alertDialog?.dismiss()
+    }
+
+    private fun showLocationPermissionNeededDialog() {
+        if (alertDialog?.isShowing == true) {
+            return // null or dialog already being shown
+        }
+
+        alertDialog = AlertDialog.Builder(this)
+                .setTitle(R.string.permission_required_title)
+                .setMessage(R.string.permission_required_body)
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    Permissions.check(this,
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            null,
+                            permissionHandler)
+                }
+                .setCancelable(false) //to disable outside click for cancel
+                .create()
+
+        alertDialog?.apply {
+            show()
+        }
     }
 }

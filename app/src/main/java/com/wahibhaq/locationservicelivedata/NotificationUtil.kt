@@ -20,6 +20,10 @@ class NotificationsUtil(
         private val notificationManager: NotificationManager
 ) {
 
+    init {
+        cancelAlertNotification() //to clear if there were any notifications
+    }
+
     private val vibrationFlow = longArrayOf(0, 400, 200, 400)
 
     fun createOngoingNotification(
