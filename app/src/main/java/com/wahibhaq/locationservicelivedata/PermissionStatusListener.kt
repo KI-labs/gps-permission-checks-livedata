@@ -1,22 +1,22 @@
 package com.wahibhaq.locationservicelivedata
 
-import android.Manifest
 import android.arch.lifecycle.LiveData
 import android.content.Context
 import android.content.pm.PackageManager
 import android.support.v4.app.ActivityCompat
 
 /**
- * Listens to Location Runtime Permissions which comes under the category of "Dangerous" and
- * then responds with appropriate state specified in {@link PermissionStatus}
+ * Listens to Runtime Permission Status of provided [permissionToListen] which comes under the
+ * category of "Dangerous" and then responds with appropriate state specified in {@link PermissionStatus}
  */
-class PermissionStatusListener(private val context: Context) : LiveData<PermissionStatus>() {
+class PermissionStatusListener(private val context: Context,
+                               private val permissionToListen: String) : LiveData<PermissionStatus>() {
 
     override fun onActive() = handlePermissionCheck()
 
     private fun handlePermissionCheck() {
         val isPermissionGranted = ActivityCompat.checkSelfPermission(context,
-                Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                permissionToListen) == PackageManager.PERMISSION_GRANTED
 
         if (isPermissionGranted)
             postValue(PermissionStatus.Granted(context.getString(R.string.permission_status_granted)))

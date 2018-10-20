@@ -1,5 +1,6 @@
 package com.wahibhaq.locationservicelivedata
 
+import android.Manifest
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
@@ -33,6 +34,8 @@ class LocationService : LifecycleService() {
     private var permissionIsGranted = false
 
     private lateinit var gpsAndPermissionStatusLiveData: LiveData<Pair<PermissionStatus, GpsStatus>>
+
+    private val locationPermission = Manifest.permission.ACCESS_FINE_LOCATION
 
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(locationResult: com.google.android.gms.location.LocationResult) {
@@ -95,7 +98,8 @@ class LocationService : LifecycleService() {
         }
 
         gpsAndPermissionStatusLiveData = with(application) {
-            PermissionStatusListener(this).combineLatestWith(GpsStatusListener(this))
+            PermissionStatusListener(this, locationPermission)
+                    .combineLatestWith(GpsStatusListener(this))
         }
     }
 

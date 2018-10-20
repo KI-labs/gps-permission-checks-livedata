@@ -149,14 +149,14 @@ class MainActivity : AppCompatActivity() {
 
         setupUI()
         subscribeToGpsListener()
-        subscribeToPermissionListener()
+        subscribeToLocationPermissionListener()
     }
 
     private fun subscribeToGpsListener() = viewModel.gpsStatusLiveData
             .observe(this, gpsObserver)
 
-    private fun subscribeToPermissionListener() =
-            viewModel.permissionStatusLiveData.observe(this, permissionObserver)
+    private fun subscribeToLocationPermissionListener() =
+            viewModel.locationPermissionStatusLiveData.observe(this, permissionObserver)
 
     /**
      * Using 3rd party lib *Permissions* for showing dialogs and handling response
