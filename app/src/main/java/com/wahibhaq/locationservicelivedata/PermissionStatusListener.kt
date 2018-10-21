@@ -19,14 +19,14 @@ class PermissionStatusListener(private val context: Context,
                 permissionToListen) == PackageManager.PERMISSION_GRANTED
 
         if (isPermissionGranted)
-            postValue(PermissionStatus.Granted(context.getString(R.string.permission_status_granted)))
+            postValue(PermissionStatus.Granted())
         else
-            postValue(PermissionStatus.Denied(context.getString(R.string.permission_status_denied_show_notif)))
+            postValue(PermissionStatus.Denied())
     }
 }
 
 sealed class PermissionStatus {
-    data class Granted(val message: String = "") : PermissionStatus()
-    data class Denied(val message: String = "") : PermissionStatus()
-    data class Blocked(val message: String = "") : PermissionStatus()
+    data class Granted(val message: Int = R.string.permission_status_granted) : PermissionStatus()
+    data class Denied(val message: Int = R.string.permission_status_denied) : PermissionStatus()
+    data class Blocked(val message: Int = R.string.permission_status_blocked) : PermissionStatus()
 }

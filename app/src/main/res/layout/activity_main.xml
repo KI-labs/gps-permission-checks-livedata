@@ -8,7 +8,7 @@
         android:id="@+id/gpsStatusDisplay"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@id/btnInitSimulatingDetection"
+        android:layout_below="@id/btnSimulateNotification"
         android:layout_marginTop="40dp"
         android:gravity="center_horizontal"
         app:layout_constraintTop_toTopOf="parent"
@@ -36,28 +36,28 @@
         android:visibility="gone"/>
 
     <Button
-        android:id="@+id/btnInitTracking"
+        android:id="@+id/btnControlTracking"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="40dp"
         android:layout_centerHorizontal="true"
         android:text="@string/button_text_start"
-        android:enabled="false"
+        android:enabled="true"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/permissionStatusDisplay"/>
 
     <Button
-        android:id="@+id/btnInitSimulatingDetection"
+        android:id="@+id/btnSimulateNotification"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@id/btnInitTracking"
+        android:layout_below="@id/btnControlTracking"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="20dp"
         android:text="@string/simulate_notifications"
-        android:enabled="false"
+        android:enabled="true"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/btnInitTracking"/>
+        app:layout_constraintTop_toBottomOf="@id/btnControlTracking"/>
 
 </android.support.constraint.ConstraintLayout>

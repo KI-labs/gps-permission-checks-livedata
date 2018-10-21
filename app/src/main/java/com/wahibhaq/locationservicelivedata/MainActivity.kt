@@ -1,7 +1,6 @@
 package com.wahibhaq.locationservicelivedata
 
 import android.Manifest
-import android.app.NotificationManager
 import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModelProviders
 import android.content.Context
@@ -24,27 +23,21 @@ import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var locationServiceListener: LocationServiceListener
-
-    private lateinit var notificationsUtil: NotificationsUtil
-
     private lateinit var viewModel: MainViewModel
 
     private var alertDialog: AlertDialog? = null
 
-    private var shouldEnableGpsClick = false
-
-    private var shouldEnablePermissionClick = false
-
     private val gpsObserver = Observer<GpsStatus> { status ->
-        status?.let { handleGpsCheckUI(status) }
+        status?.let {
+            updateGpsCheckUI(status)
+        }
     }
 
     private val permissionObserver = Observer<PermissionStatus> { status ->
         status?.let {
-            handlePermissionCheckUI(status)
-            when (it) {
-                is PermissionStatus.Granted -> handleGpsCheckDialog()
+            updatePermissionCheckUI(status)
+            when (status) {
+                is PermissionStatus.Granted -> handleGpsAlertDialog()
                 is PermissionStatus.Denied -> showLocationPermissionNeededDialog()
             }
         }
@@ -53,13 +46,13 @@ class MainActivity : AppCompatActivity() {
     private val permissionHandler = object : PermissionHandler() {
         override fun onGranted() {
             Timber.i("Activity: %s", R.string.permission_status_granted)
-            handleGpsCheckDialog()
-            handlePermissionCheckUI(PermissionStatus.Granted())
+            updatePermissionCheckUI(PermissionStatus.Granted())
+            handleGpsAlertDialog()
         }
 
         override fun onDenied(context: Context?, deniedPermissions: ArrayList<String>?) {
             Timber.w("Activity: %s", R.string.permission_status_denied)
-            handlePermissionCheckUI(PermissionStatus.Denied())
+            updatePermissionCheckUI(PermissionStatus.Denied())
         }
 
         override fun onJustBlocked(
@@ -68,72 +61,98 @@ class MainActivity : AppCompatActivity() {
                 deniedPermissions: ArrayList<String>?
         ) {
             Timber.w("Activity: %s", R.string.permission_status_blocked)
-            handlePermissionCheckUI(PermissionStatus.Blocked())
+            updatePermissionCheckUI(PermissionStatus.Blocked())
         }
     }
 
-    /**
-     *  Using current value of [GpsStatusListener] livedata as default
-     */
-    private fun handleGpsCheckDialog(status: GpsStatus = viewModel.gpsStatusLiveData.value as GpsStatus) {
-        when (status) {
-            is GpsStatus.Enabled -> hideGpsNotEnabledDialog()
-            is GpsStatus.Disabled -> showGpsNotEnabledDialog()
-        }
-    }
-
-    private fun handleGpsCheckUI(status: GpsStatus) {
+    private fun updateGpsCheckUI(status: GpsStatus) {
         when (status) {
             is GpsStatus.Enabled -> {
-                shouldEnableGpsClick = false
+                gpsStatusDisplay.isEnabled = false
                 gpsStatusDisplay.apply {
-                    text = status.message
+                    text = getString(status.message)
                     setTextColor(Color.BLUE)
                 }
 
-                handleGpsCheckDialog(GpsStatus.Enabled())
+                handleGpsAlertDialog(GpsStatus.Enabled())
             }
 
             is GpsStatus.Disabled -> {
-                shouldEnableGpsClick = true
+                gpsStatusDisplay.isEnabled = true
                 gpsStatusDisplay.apply {
-                    text = status.message
+                    text = getString(status.message).plus(getString(R.string.click_to_retry))
                     setTextColor(Color.RED)
                 }
             }
         }
 
-        updateButtonEnableStatus()
+        toggleButtonClickableState()
     }
 
-    private fun handlePermissionCheckUI(status: PermissionStatus) {
+    private fun updatePermissionCheckUI(status: PermissionStatus) {
         when (status) {
             is PermissionStatus.Granted -> {
-                shouldEnablePermissionClick = false
+                permissionStatusDisplay.isEnabled = false
                 permissionStatusDisplay.apply {
-                    text = getString(R.string.permission_status_granted)
+                    text = getString(status.message)
                     setTextColor(Color.BLUE)
                 }
             }
 
             is PermissionStatus.Denied -> {
-                shouldEnablePermissionClick = true
+                permissionStatusDisplay.isEnabled = true
                 permissionStatusDisplay.apply {
-                    text = getString(R.string.permission_status_denied)
+                    text = getString(status.message.plus(R.string.click_to_retry))
                     setTextColor(Color.RED)
                 }
             }
 
             is PermissionStatus.Blocked -> {
-                shouldEnablePermissionClick = true
+                permissionStatusDisplay.isEnabled = true
                 permissionStatusDisplay.apply {
-                    text = getString(R.string.permission_status_blocked)
+                    text = getString(status.message.plus(R.string.click_to_retry))
                     setTextColor(Color.RED)
                 }
             }
         }
 
-        updateButtonEnableStatus()
+        toggleButtonClickableState()
+    }
+
+    private fun isTrackingRunningAlready() = isTrackingRunning && isServiceRunning
+
+    private fun setupUI() {
+
+        //Start Tracking Only if there is a need and it's valid to start tracking
+        if (isTrackingRunningAlready()) btnControlTracking.text = getString(R.string.button_text_end)
+        btnControlTracking.setOnClickListener {
+            if (isTrackingRunningAlready().not())
+                startTracking()
+            else
+                stopTracking()
+        }
+
+        /**
+         * This is to simulate how user is alerted via notifications when activity start is detected
+         * in background by [LocationService]
+         */
+        btnSimulateNotification.setOnClickListener {
+            Handler().apply {
+                postDelayed({ viewModel.startLocationTracking() }, 3000)
+            }
+        }
+
+        gpsStatusDisplay.setOnClickListener { handleGpsAlertDialog() }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            permissionStatusDisplay.visibility = View.VISIBLE
+            permissionStatusDisplay.setOnClickListener { showLocationPermissionNeededDialog() }
+        }
+    }
+
+    private fun toggleButtonClickableState() {
+        btnControlTracking.isEnabled = gpsStatusDisplay.isEnabled.not() && permissionStatusDisplay.isEnabled.not()
+        btnSimulateNotification.isEnabled = btnControlTracking.isEnabled.not()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -141,13 +160,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         viewModel = ViewModelProviders.of(this).get(MainViewModel::class.java)
-        locationServiceListener = LocationServiceListener(
-                this, Intent(applicationContext, LocationService::class.java))
 
-        notificationsUtil = NotificationsUtil(this,
-                applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
-
-        setupUI()
         subscribeToGpsListener()
         subscribeToLocationPermissionListener()
     }
@@ -158,73 +171,31 @@ class MainActivity : AppCompatActivity() {
     private fun subscribeToLocationPermissionListener() =
             viewModel.locationPermissionStatusLiveData.observe(this, permissionObserver)
 
-    /**
-     * Using 3rd party lib *Permissions* for showing dialogs and handling response
-     */
-    private fun handlePermissionAndGpsCheck() = Permissions.check(this,
-            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-            R.string.permission_required_body,
-            Permissions.Options()
-                    .setSettingsDialogTitle(getString(R.string.permission_required_title))
-                    .setSettingsDialogMessage(getString(R.string.permission_blocked_body))
-                    .setRationaleDialogTitle(getString(R.string.permission_required_title)),
-            permissionHandler)
-
-    private fun setupUI() {
-        btnInitTracking.setOnClickListener {
-            //Only if there is a need and it's valid to start tracking
-            if (!isTrackingRunning && !isServiceRunning) startTracking()
-            else stopTracking() //To toggle state
-        }
-
-        /**
-         * This is to simulate how user is alerted via notifications when activity start is detected
-         * in background by [LocationService]
-         */
-        btnInitSimulatingDetection.setOnClickListener {
-            Handler().apply {
-                postDelayed({ locationServiceListener.subscribeToLocationUpdates() }, 3000)
-            }
-        }
-
-        gpsStatusDisplay.setOnClickListener { handleGpsCheckDialog() }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            permissionStatusDisplay.visibility = View.VISIBLE
-            permissionStatusDisplay.setOnClickListener { handlePermissionAndGpsCheck() }
-        }
-    }
-
-    private fun updateButtonEnableStatus() {
-        gpsStatusDisplay.isEnabled = shouldEnableGpsClick
-        permissionStatusDisplay.isEnabled = shouldEnablePermissionClick
-
-        if (btnInitTracking.text == getString(R.string.button_text_end))
-            btnInitTracking.isEnabled = true //Button is always clickable to allow user to end tracking
-        else
-            btnInitTracking.isEnabled = shouldEnableGpsClick.not()
-                    && shouldEnablePermissionClick.not()
-
-        btnInitSimulatingDetection.isEnabled = btnInitTracking.isEnabled.not()
-    }
-
     private fun startTracking() {
         Timber.i("Tracking start triggered from Button on Activity")
-        locationServiceListener.subscribeToLocationUpdates()
-        btnInitTracking.text = getString(R.string.button_text_end)
+        viewModel.startLocationTracking()
+        btnControlTracking.text = getString(R.string.button_text_end)
     }
 
     private fun stopTracking() {
         Timber.i("Tracking stop triggered from Activity")
-        locationServiceListener.unsubscribeFromLocationUpdates()
-        notificationsUtil.cancelAlertNotification()
-        btnInitTracking.text = getString(R.string.button_text_start)
-        updateButtonEnableStatus() //To make button disable again if needed
+        viewModel.stopLocationTracking()
+        btnControlTracking.text = getString(R.string.button_text_start)
     }
 
     override fun onResume() {
         super.onResume()
-        if (isServiceRunning) btnInitTracking.text = getString(R.string.button_text_end)
+        setupUI()
+    }
+
+    /**
+     *  Using current value of [GpsStatusListener] livedata as default
+     */
+    private fun handleGpsAlertDialog(status: GpsStatus = viewModel.gpsStatusLiveData.value as GpsStatus) {
+        when (status) {
+            is GpsStatus.Enabled -> hideGpsNotEnabledDialog()
+            is GpsStatus.Disabled -> showGpsNotEnabledDialog()
+        }
     }
 
     private fun showGpsNotEnabledDialog() {
@@ -259,6 +230,7 @@ class MainActivity : AppCompatActivity() {
                 .setTitle(R.string.permission_required_title)
                 .setMessage(R.string.permission_required_body)
                 .setPositiveButton(android.R.string.ok) { _, _ ->
+                    //Using 3rd party lib *Permissions* for showing dialogs and handling response
                     Permissions.check(this,
                             Manifest.permission.ACCESS_FINE_LOCATION,
                             null,

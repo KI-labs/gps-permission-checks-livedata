@@ -29,9 +29,9 @@ class GpsStatusListener(private val context: Context) : LiveData<GpsStatus>() {
     }
 
     private fun checkGpsAndReact() = if (isLocationEnabled()) {
-        postValue(GpsStatus.Enabled(context.getString(R.string.gps_status_enabled)))
+        postValue(GpsStatus.Enabled())
     } else {
-        postValue(GpsStatus.Disabled(context.getString(R.string.gps_status_disabled)))
+        postValue(GpsStatus.Disabled())
     }
 
     private fun isLocationEnabled() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -56,6 +56,6 @@ class GpsStatusListener(private val context: Context) : LiveData<GpsStatus>() {
 }
 
 sealed class GpsStatus {
-    data class Disabled(val message: String = "") : GpsStatus()
-    data class Enabled(val message: String = "") : GpsStatus()
+    data class Enabled(val message: Int = R.string.gps_status_enabled) : GpsStatus()
+    data class Disabled(val message: Int = R.string.gps_status_disabled) : GpsStatus()
 }
