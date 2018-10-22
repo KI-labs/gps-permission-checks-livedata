@@ -102,7 +102,7 @@ class MainActivity : AppCompatActivity() {
             is PermissionStatus.Denied -> {
                 permissionStatusDisplay.isEnabled = true
                 permissionStatusDisplay.apply {
-                    text = getString(status.message.plus(R.string.click_to_retry))
+                    text = getString(status.message).plus(getString(R.string.click_to_retry))
                     setTextColor(Color.RED)
                 }
             }
@@ -110,7 +110,7 @@ class MainActivity : AppCompatActivity() {
             is PermissionStatus.Blocked -> {
                 permissionStatusDisplay.isEnabled = true
                 permissionStatusDisplay.apply {
-                    text = getString(status.message.plus(R.string.click_to_retry))
+                    text = getString(status.message).plus(getString(R.string.click_to_retry))
                     setTextColor(Color.RED)
                 }
             }
