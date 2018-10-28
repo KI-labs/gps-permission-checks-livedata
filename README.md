@@ -14,8 +14,8 @@ I tried to show implementation of GPS and Location Permission checks using LiveD
 
 1) UI (app is active): Checking for both elements, displaying state and showing dialogs for user to react accordingly
 
-Medium Article: [Read Here](https://medium.com/ki-labs-engineering/monitoring-gps-and-location-permission-checks-using-livedata-part-1-278907344b77)
+    Medium Article: [Read Here](https://medium.com/ki-labs-engineering/monitoring-gps-and-location-permission-checks-using-livedata-part-1-278907344b77)
 
 2) Background (app is not active): Check for both elements as part of Service whenever it is started by System and inform user via notification so that user can enable them for us. Otherwise, location tracking won’t succeed at all.
 
-Medium Article: [Read Here](https://medium.com/ki-labs-engineering/monitoring-gps-and-location-permission-checks-using-livedata-part-2-d8822ab951a6)
+    Medium Article: [Read Here](https://medium.com/ki-labs-engineering/monitoring-gps-and-location-permission-checks-using-livedata-part-2-d8822ab951a6)
