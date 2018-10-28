@@ -13,4 +13,9 @@ There are already native android ways to implement both of these checks but I tr
 I tried to show implementation of GPS and Location Permission checks using LiveData. 
 
 1) UI (app is active): Checking for both elements, displaying state and showing dialogs for user to react accordingly
+
+Medium Article: https://medium.com/p/278907344b77/ 
+
 2) Background (app is not active): Check for both elements as part of Service whenever it is started by System and inform user via notification so that user can enable them for us. Otherwise, location tracking won’t succeed at all.
+
+Medium Article: https://medium.com/p/d8822ab951a6/
